@@ -26,7 +26,7 @@ func TestAuthMiddlewareRequireAuth(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
-	request := httptest.NewRequest(http.MethodGet, "/auth/me", nil)
+	request := httptest.NewRequest(http.MethodGet, "/auth/me", http.NoBody)
 	request.Header.Set("Authorization", "Bearer valid-token")
 	recorder := httptest.NewRecorder()
 
@@ -45,7 +45,7 @@ func TestAuthMiddlewareRequireAuthMissingToken(t *testing.T) {
 
 	middleware := NewAuthMiddleware(&stubTokenVerifier{})
 	recorder := httptest.NewRecorder()
-	request := httptest.NewRequest(http.MethodGet, "/auth/me", nil)
+	request := httptest.NewRequest(http.MethodGet, "/auth/me", http.NoBody)
 
 	middleware.RequireAuth(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
 		t.Fatal("next handler should not be called")

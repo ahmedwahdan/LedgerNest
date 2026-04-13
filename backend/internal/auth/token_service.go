@@ -101,7 +101,7 @@ func (s *TokenService) VerifyAccessToken(token string, now time.Time) (AccessTok
 	}, nil
 }
 
-func (s *TokenService) GenerateRefreshToken() (plainToken string, tokenHash string, err error) {
+func (s *TokenService) GenerateRefreshToken() (plainToken, tokenHash string, err error) {
 	tokenBytes := make([]byte, 32)
 	if _, err := rand.Read(tokenBytes); err != nil {
 		return "", "", fmt.Errorf("generate refresh token: %w", err)

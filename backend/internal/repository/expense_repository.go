@@ -194,7 +194,6 @@ func (r *ExpenseRepository) ListPersonal(ctx context.Context, filters ListExpens
 	if filters.CategoryID != nil {
 		conditions = append(conditions, fmt.Sprintf("category_id = $%d", argIndex))
 		args = append(args, *filters.CategoryID)
-		argIndex++
 	}
 
 	query := baseQuery + " AND " + strings.Join(conditions, " AND ") + " ORDER BY date DESC, created_at DESC"

@@ -50,7 +50,7 @@ func TestExpenseHandlerListPersonal(t *testing.T) {
 	}
 	handler := NewExpenseHandler(stub)
 
-	request := httptest.NewRequest(http.MethodGet, "/expenses?from=2026-04-01&to=2026-04-30&merchant=market&category_id=category-1", nil)
+	request := httptest.NewRequest(http.MethodGet, "/expenses?from=2026-04-01&to=2026-04-30&merchant=market&category_id=category-1", http.NoBody)
 	request = request.WithContext(auth.ContextWithAccessTokenClaims(request.Context(), auth.AccessTokenClaims{UserID: "user-1"}))
 	recorder := httptest.NewRecorder()
 
@@ -71,7 +71,7 @@ func TestExpenseHandlerGetPersonal(t *testing.T) {
 		getExpense: model.Expense{ID: "expense-1"},
 	})
 
-	request := httptest.NewRequest(http.MethodGet, "/expenses/expense-1", nil)
+	request := httptest.NewRequest(http.MethodGet, "/expenses/expense-1", http.NoBody)
 	request.SetPathValue("id", "expense-1")
 	request = request.WithContext(auth.ContextWithAccessTokenClaims(request.Context(), auth.AccessTokenClaims{UserID: "user-1"}))
 	recorder := httptest.NewRecorder()
@@ -107,7 +107,7 @@ func TestExpenseHandlerDeletePersonal(t *testing.T) {
 
 	handler := NewExpenseHandler(&stubExpenseService{})
 
-	request := httptest.NewRequest(http.MethodDelete, "/expenses/expense-1", nil)
+	request := httptest.NewRequest(http.MethodDelete, "/expenses/expense-1", http.NoBody)
 	request.SetPathValue("id", "expense-1")
 	request = request.WithContext(auth.ContextWithAccessTokenClaims(request.Context(), auth.AccessTokenClaims{UserID: "user-1"}))
 	recorder := httptest.NewRecorder()

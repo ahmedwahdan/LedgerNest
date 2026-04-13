@@ -91,7 +91,7 @@ func TestAuthHandlerMe(t *testing.T) {
 	})
 
 	recorder := httptest.NewRecorder()
-	request := httptest.NewRequest(http.MethodGet, "/auth/me", nil)
+	request := httptest.NewRequest(http.MethodGet, "/auth/me", http.NoBody)
 	request = request.WithContext(auth.ContextWithAccessTokenClaims(request.Context(), auth.AccessTokenClaims{UserID: "user-1"}))
 
 	handler.Me(recorder, request)
