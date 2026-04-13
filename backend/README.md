@@ -1,6 +1,6 @@
-# Expenses API
+# LedgerNest API
 
-Go REST API backend for the Expense Intelligence App.
+Go REST API backend for LedgerNest.
 
 ## Prerequisites
 

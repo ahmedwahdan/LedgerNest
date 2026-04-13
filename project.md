@@ -1,4 +1,4 @@
-# Expense Intelligence App — Feature Spec & Architecture (MVP)
+# LedgerNest — Feature Spec & Architecture (MVP)
 
 ## 1. Authentication & User Management
 

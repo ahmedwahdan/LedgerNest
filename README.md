@@ -1,12 +1,12 @@
-# Expense Intelligence App
+# LedgerNest
 
 > A modern household finance platform in progress — built to make budgeting clearer, collaborative, and more actionable.
 
-[![CI](https://github.com/wahdan/expenses-project/actions/workflows/ci.yml/badge.svg)](https://github.com/wahdan/expenses-project/actions/workflows/ci.yml)
+[![CI](https://github.com/ahmedwahdan/LedgerNest/actions/workflows/ci.yml/badge.svg)](https://github.com/ahmedwahdan/LedgerNest/actions/workflows/ci.yml)
 
 ## Overview
 
-Expense Intelligence App is a rising personal finance project focused on households, shared visibility, and smarter budgeting. The goal is simple: make it easier for people to track spending, stay aligned with family members, and understand what is driving their budget in real terms.
+LedgerNest is a rising personal finance project focused on households, shared visibility, and smarter budgeting. The goal is simple: make it easier for people to track spending, stay aligned with family members, and understand what is driving their budget in real terms.
 
 It combines shared expense management, flexible budgeting, and insight-driven reporting in one product direction that can grow from an MVP into a broader financial intelligence platform.
 
@@ -33,8 +33,8 @@ It combines shared expense management, flexible budgeting, and insight-driven re
 
 ```bash
 # 1. Clone
-git clone https://github.com/wahdan/expenses-project.git
-cd expenses-project
+git clone https://github.com/ahmedwahdan/LedgerNest.git
+cd LedgerNest
 
 # 2. Copy env (defaults work out of the box)
 cp backend/.env.example backend/.env
