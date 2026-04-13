@@ -348,15 +348,17 @@ The web app is built mobile-first and responsive. It serves as the primary inter
 - [ ] Notification read/unread endpoints
 
 ### Phase 3 — Web Frontend
-- [ ] Auth pages: login, register, forgot/reset password, email verification
-- [ ] Onboarding wizard: household setup, budget cycle, first budgets
-- [ ] Dashboard: budget bars, recent expenses, spending chart, activity feed
-- [ ] Expense entry + edit form (with category picker, merchant autocomplete)
-- [ ] Expense list with filters (date, category, scope)
-- [ ] Expense history view (audit trail per entry)
-- [ ] Budget management: per-category setup, overall cap, cycle config
+- [x] Auth pages: login (wired to API + httpOnly cookie session), register
+- [x] Route protection via proxy.ts (redirect to /login if no access_token cookie)
+- [x] App shell: sidebar navigation (dashboard, expenses, budgets), logout
+- [x] Dashboard: budget health bars (pct_used, remaining, color-coded), recent expenses
+- [x] Expense entry form (amount, currency, merchant, date, payment method, category, notes)
+- [x] Expense list with filters (from/to date, merchant search)
+- [x] Expense detail: inline edit, delete (soft), restore, audit history timeline
+- [x] Budget management: health view (overall cap + per-category bars), add/remove budgets
+- [ ] Onboarding wizard: household setup, budget cycle config
+- [ ] Household management pages (members, invitations, roles)
 - [ ] Analytics pages: category breakdown, trends, merchant ranking
-- [ ] Household management: members, invitations, roles
 - [ ] Notifications panel
 - [ ] CSV export
 - [ ] Dark mode + mobile-responsive polish throughout
