@@ -2,3 +2,7 @@ Commit policy for this repository:
 - Do not add co-author trailers to commits.
 - Use author name: Ahmed Wahdan
 - Use author email: ahmedibrahimwahdan@gmail.com
+
+Working rules for this repository:
+- Update the plan whenever something is finished or materially changes.
+- After a PR is merged, delete the feature branch unless there is a concrete reason to keep it.
