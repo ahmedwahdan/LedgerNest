@@ -26,6 +26,7 @@ var (
 
 type householdStore interface {
 	Create(ctx context.Context, name, createdByUserID string) (model.Household, error)
+	ListByUserID(ctx context.Context, userID string) ([]model.Household, error)
 	GetByID(ctx context.Context, householdID string) (model.Household, error)
 	Update(ctx context.Context, householdID, name string) (model.Household, error)
 	Delete(ctx context.Context, householdID string) error
@@ -68,6 +69,10 @@ func (s *HouseholdService) Create(ctx context.Context, requesterID, name string)
 	}
 
 	return s.households.Create(ctx, name, requesterID)
+}
+
+func (s *HouseholdService) List(ctx context.Context, userID string) ([]model.Household, error) {
+	return s.households.ListByUserID(ctx, userID)
 }
 
 func (s *HouseholdService) Get(ctx context.Context, requesterID, householdID string) (model.Household, error) {

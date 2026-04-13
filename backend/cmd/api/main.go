@@ -46,8 +46,10 @@ func run() error {
 	budgetCycleRepository := repository.NewBudgetCycleRepository(pool)
 	budgetRepository := repository.NewBudgetRepository(pool)
 	auditLogRepository := repository.NewAuditLogRepository(pool)
+	notificationRepository := repository.NewNotificationRepository(pool)
 	tokenService := auth.NewTokenService(cfg.JWTSecret)
 	auditService := service.NewAuditService(auditLogRepository)
+	notificationService := service.NewNotificationService(notificationRepository)
 	authService := service.NewAuthService(
 		userRepository,
 		sessionRepository,
@@ -59,13 +61,14 @@ func run() error {
 	categoryService := service.NewCategoryService(categoryRepository)
 	householdService := service.NewHouseholdService(householdRepository, tokenService, cfg.InviteTTL)
 	budgetCycleService := service.NewBudgetCycleService(budgetCycleRepository, householdRepository)
-	budgetService := service.NewBudgetService(budgetRepository, budgetCycleRepository, householdRepository)
+	budgetService := service.NewBudgetService(budgetRepository, budgetCycleRepository, householdRepository, notificationService)
 	authHandler := handler.NewAuthHandler(authService)
 	expenseHandler := handler.NewExpenseHandler(expenseService, auditService)
 	categoryHandler := handler.NewCategoryHandler(categoryService)
 	householdHandler := handler.NewHouseholdHandler(householdService)
 	budgetCycleHandler := handler.NewBudgetCycleHandler(budgetCycleService)
 	budgetHandler := handler.NewBudgetHandler(budgetService)
+	notificationHandler := handler.NewNotificationHandler(notificationService)
 	authMiddleware := middleware.NewAuthMiddleware(tokenService)
 
 	mux := http.NewServeMux()
@@ -96,6 +99,7 @@ func run() error {
 	mux.Handle("POST /categories", authMiddleware.RequireAuth(http.HandlerFunc(categoryHandler.Create)))
 	mux.Handle("PUT /categories/{id}", authMiddleware.RequireAuth(http.HandlerFunc(categoryHandler.Update)))
 	mux.Handle("DELETE /categories/{id}", authMiddleware.RequireAuth(http.HandlerFunc(categoryHandler.Delete)))
+	mux.Handle("GET /households", authMiddleware.RequireAuth(http.HandlerFunc(householdHandler.List)))
 	mux.Handle("POST /households", authMiddleware.RequireAuth(http.HandlerFunc(householdHandler.Create)))
 	mux.Handle("GET /households/{id}", authMiddleware.RequireAuth(http.HandlerFunc(householdHandler.Get)))
 	mux.Handle("PUT /households/{id}", authMiddleware.RequireAuth(http.HandlerFunc(householdHandler.Update)))
@@ -116,6 +120,9 @@ func run() error {
 	mux.Handle("POST /budgets", authMiddleware.RequireAuth(http.HandlerFunc(budgetHandler.Create)))
 	mux.Handle("PUT /budgets/{id}", authMiddleware.RequireAuth(http.HandlerFunc(budgetHandler.Update)))
 	mux.Handle("DELETE /budgets/{id}", authMiddleware.RequireAuth(http.HandlerFunc(budgetHandler.Delete)))
+	mux.Handle("GET /notifications", authMiddleware.RequireAuth(http.HandlerFunc(notificationHandler.List)))
+	mux.Handle("PUT /notifications/{id}/read", authMiddleware.RequireAuth(http.HandlerFunc(notificationHandler.MarkRead)))
+	mux.Handle("PUT /notifications/read-all", authMiddleware.RequireAuth(http.HandlerFunc(notificationHandler.MarkAllRead)))
 
 	server := &http.Server{
 		Addr:              ":" + cfg.Port,

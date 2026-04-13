@@ -31,17 +31,23 @@ type snapshotGetter interface {
 	GetSnapshotByID(ctx context.Context, snapshotID string) (model.CycleSnapshot, error)
 }
 
-type BudgetService struct {
-	budgets    budgetStore
-	cycles     snapshotGetter
-	households householdStore
+type thresholdChecker interface {
+	CheckBudgetThresholds(ctx context.Context, userID string, items []BudgetHealthItem, snapshotID string)
 }
 
-func NewBudgetService(budgets budgetStore, cycles snapshotGetter, households householdStore) *BudgetService {
+type BudgetService struct {
+	budgets       budgetStore
+	cycles        snapshotGetter
+	households    householdStore
+	notifications thresholdChecker
+}
+
+func NewBudgetService(budgets budgetStore, cycles snapshotGetter, households householdStore, notifications thresholdChecker) *BudgetService {
 	return &BudgetService{
-		budgets:    budgets,
-		cycles:     cycles,
-		households: households,
+		budgets:       budgets,
+		cycles:        cycles,
+		households:    households,
+		notifications: notifications,
 	}
 }
 
@@ -215,6 +221,7 @@ func (s *BudgetService) GetHealth(ctx context.Context, requesterID, householdID 
 		Categories: make([]model.BudgetHealthItem, 0),
 	}
 
+	var allItems []BudgetHealthItem
 	for _, row := range rows {
 		item := buildHealthItem(row)
 		if row.CategoryID == nil {
@@ -222,6 +229,13 @@ func (s *BudgetService) GetHealth(ctx context.Context, requesterID, householdID 
 		} else {
 			health.Categories = append(health.Categories, item)
 		}
+		allItems = append(allItems, item)
+	}
+
+	// Fire threshold notifications best-effort (personal scope only — household
+	// notifications require knowing which user to notify).
+	if scope == "personal" {
+		go s.notifications.CheckBudgetThresholds(ctx, requesterID, allItems, sid)
 	}
 
 	return health, nil

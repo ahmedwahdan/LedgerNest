@@ -14,6 +14,7 @@ import (
 
 type householdService interface {
 	Create(ctx context.Context, requesterID, name string) (model.Household, error)
+	List(ctx context.Context, userID string) ([]model.Household, error)
 	Get(ctx context.Context, requesterID, householdID string) (model.Household, error)
 	Update(ctx context.Context, requesterID, householdID, name string) (model.Household, error)
 	Delete(ctx context.Context, requesterID, householdID string) error
@@ -38,6 +39,21 @@ func NewHouseholdHandler(households householdService) *HouseholdHandler {
 }
 
 // ── Household CRUD ────────────────────────────────────────────────────────────
+
+// List handles GET /households
+func (h *HouseholdHandler) List(w http.ResponseWriter, r *http.Request) {
+	claims := mustClaims(r)
+
+	households, err := h.households.List(r.Context(), claims.UserID)
+	if err != nil {
+		httpx.WriteError(w, http.StatusInternalServerError, "failed to list households")
+		return
+	}
+	if households == nil {
+		households = []model.Household{}
+	}
+	httpx.WriteJSON(w, http.StatusOK, map[string]any{"households": households})
+}
 
 // Create handles POST /households
 func (h *HouseholdHandler) Create(w http.ResponseWriter, r *http.Request) {

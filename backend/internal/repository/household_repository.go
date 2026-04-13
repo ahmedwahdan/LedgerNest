@@ -104,6 +104,32 @@ func (r *HouseholdRepository) Update(ctx context.Context, householdID, name stri
 	return h, nil
 }
 
+func (r *HouseholdRepository) ListByUserID(ctx context.Context, userID string) ([]model.Household, error) {
+	const query = `
+		SELECT h.id, h.name, h.created_by, h.created_at, h.updated_at
+		FROM households h
+		JOIN household_members hm ON hm.household_id = h.id
+		WHERE hm.user_id = $1
+		ORDER BY h.created_at DESC
+	`
+
+	rows, err := r.pool.Query(ctx, query, userID)
+	if err != nil {
+		return nil, fmt.Errorf("list households: %w", err)
+	}
+	defer rows.Close()
+
+	var households []model.Household
+	for rows.Next() {
+		var h model.Household
+		if err := rows.Scan(&h.ID, &h.Name, &h.CreatedBy, &h.CreatedAt, &h.UpdatedAt); err != nil {
+			return nil, fmt.Errorf("scan household: %w", err)
+		}
+		households = append(households, h)
+	}
+	return households, rows.Err()
+}
+
 func (r *HouseholdRepository) Delete(ctx context.Context, householdID string) error {
 	const query = `DELETE FROM households WHERE id = $1`
 
