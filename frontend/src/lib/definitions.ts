@@ -109,6 +109,17 @@ export interface AuditLogEntry {
   created_at: string
 }
 
+export interface Notification {
+  id: string
+  user_id: string
+  type: string
+  title: string
+  body: string
+  metadata?: Record<string, unknown>
+  read_at?: string
+  created_at: string
+}
+
 export type ActionState =
   | { success: true; message?: string }
   | { success: false; error: string }
