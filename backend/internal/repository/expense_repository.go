@@ -49,6 +49,8 @@ type ListExpenseFilters struct {
 	To         string
 	Merchant   string
 	CategoryID *string
+	Limit      int
+	Offset     int
 }
 
 type ExpenseRepository struct {
@@ -196,7 +198,17 @@ func (r *ExpenseRepository) ListPersonal(ctx context.Context, filters ListExpens
 		args = append(args, *filters.CategoryID)
 	}
 
-	query := baseQuery + " AND " + strings.Join(conditions, " AND ") + " ORDER BY date DESC, created_at DESC"
+	limit := filters.Limit
+	if limit <= 0 || limit > 200 {
+		limit = 50
+	}
+	offset := filters.Offset
+	if offset < 0 {
+		offset = 0
+	}
+
+	query := baseQuery + " AND " + strings.Join(conditions, " AND ") +
+		fmt.Sprintf(" ORDER BY date DESC, created_at DESC LIMIT %d OFFSET %d", limit, offset)
 
 	rows, err := r.pool.Query(ctx, query, args...)
 	if err != nil {
@@ -364,6 +376,65 @@ func (r *ExpenseRepository) UpdatePersonal(ctx context.Context, params UpdateExp
 			return model.Expense{}, ErrExpenseNotFound
 		}
 		return model.Expense{}, fmt.Errorf("update personal expense: %w", err)
+	}
+
+	return expense, nil
+}
+
+func (r *ExpenseRepository) RestorePersonal(ctx context.Context, expenseID, userID, restoredBy string) (model.Expense, error) {
+	const query = `
+		UPDATE expenses
+		SET
+			is_deleted = FALSE,
+			deleted_at = NULL,
+			deleted_by = NULL,
+			updated_by = $1,
+			updated_at = NOW()
+		WHERE id = $2
+		  AND scope = 'personal'
+		  AND user_id = $3
+		  AND is_deleted = TRUE
+		RETURNING
+			id,
+			scope::text,
+			user_id,
+			created_by,
+			amount::text,
+			currency,
+			merchant,
+			category_id,
+			payment_method,
+			date::text,
+			COALESCE(notes, ''),
+			is_recurring,
+			recurrence_interval,
+			created_at,
+			updated_at
+	`
+
+	var expense model.Expense
+	err := r.pool.QueryRow(ctx, query, restoredBy, expenseID, userID).Scan(
+		&expense.ID,
+		&expense.Scope,
+		&expense.UserID,
+		&expense.CreatedBy,
+		&expense.Amount,
+		&expense.Currency,
+		&expense.Merchant,
+		&expense.CategoryID,
+		&expense.PaymentMethod,
+		&expense.Date,
+		&expense.Notes,
+		&expense.IsRecurring,
+		&expense.RecurrenceInterval,
+		&expense.CreatedAt,
+		&expense.UpdatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return model.Expense{}, ErrExpenseNotFound
+		}
+		return model.Expense{}, fmt.Errorf("restore personal expense: %w", err)
 	}
 
 	return expense, nil

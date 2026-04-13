@@ -18,6 +18,7 @@ type authService interface {
 	Register(ctx context.Context, email, password, displayName string) (model.User, error)
 	Login(ctx context.Context, email, password string) (service.LoginResult, error)
 	Refresh(ctx context.Context, refreshToken string) (service.LoginResult, error)
+	Logout(ctx context.Context, refreshToken string) error
 	CurrentUser(ctx context.Context, userID string) (model.User, error)
 }
 
@@ -123,6 +124,32 @@ func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 	}
 
 	httpx.WriteJSON(w, http.StatusOK, result)
+}
+
+func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
+	var req refreshRequest
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid JSON body")
+		return
+	}
+
+	if strings.TrimSpace(req.RefreshToken) == "" {
+		httpx.WriteError(w, http.StatusBadRequest, "refresh_token is required")
+		return
+	}
+
+	if err := h.auth.Logout(r.Context(), req.RefreshToken); err != nil {
+		if errors.Is(err, service.ErrInvalidCredentials) {
+			httpx.WriteError(w, http.StatusUnauthorized, "invalid refresh token")
+			return
+		}
+
+		httpx.WriteError(w, http.StatusInternalServerError, "failed to logout")
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {

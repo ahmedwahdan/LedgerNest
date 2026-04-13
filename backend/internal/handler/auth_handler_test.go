@@ -128,6 +128,10 @@ func (s *stubAuthService) Refresh(context.Context, string) (service.LoginResult,
 	return s.refreshResult, nil
 }
 
+func (s *stubAuthService) Logout(context.Context, string) error {
+	return nil
+}
+
 func (s *stubAuthService) CurrentUser(context.Context, string) (model.User, error) {
 	if s.currentUserErr != nil {
 		return model.User{}, s.currentUserErr

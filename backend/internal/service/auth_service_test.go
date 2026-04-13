@@ -237,3 +237,7 @@ func (s *stubSessionStore) Rotate(_ context.Context, currentRefreshTokenHash, ne
 	s.rotatedExpiresAt = expiresAt
 	return nil
 }
+
+func (s *stubSessionStore) DeleteByRefreshTokenHash(context.Context, string) error {
+	return nil
+}

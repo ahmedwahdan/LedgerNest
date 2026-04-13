@@ -24,7 +24,7 @@ func TestExpenseServiceCreatePersonal(t *testing.T) {
 			Date:          "2026-04-13",
 		},
 	}
-	service := NewExpenseService(store)
+	service := NewExpenseService(store, &stubAuditRecorder{})
 
 	expense, err := service.CreatePersonal(context.Background(), "user-1", CreateExpenseInput{
 		Amount:        "23.50",
@@ -51,7 +51,7 @@ func TestExpenseServiceCreatePersonal(t *testing.T) {
 func TestExpenseServiceCreatePersonalRejectsInvalidInput(t *testing.T) {
 	t.Parallel()
 
-	service := NewExpenseService(&stubExpenseStore{})
+	service := NewExpenseService(&stubExpenseStore{}, &stubAuditRecorder{})
 
 	_, err := service.CreatePersonal(context.Background(), "user-1", CreateExpenseInput{
 		Amount:        "-1",
@@ -70,7 +70,7 @@ func TestExpenseServiceListPersonal(t *testing.T) {
 	store := &stubExpenseStore{
 		listExpenses: []model.Expense{{ID: "expense-1"}, {ID: "expense-2"}},
 	}
-	service := NewExpenseService(store)
+	service := NewExpenseService(store, &stubAuditRecorder{})
 
 	categoryID := "category-1"
 	expenses, err := service.ListPersonal(context.Background(), "user-1", ListExpensesInput{
@@ -96,7 +96,7 @@ func TestExpenseServiceGetPersonal(t *testing.T) {
 	store := &stubExpenseStore{
 		getExpense: model.Expense{ID: "expense-1"},
 	}
-	service := NewExpenseService(store)
+	service := NewExpenseService(store, &stubAuditRecorder{})
 
 	expense, err := service.GetPersonal(context.Background(), "expense-1", "user-1")
 	if err != nil {
@@ -116,7 +116,7 @@ func TestExpenseServiceUpdatePersonal(t *testing.T) {
 	store := &stubExpenseStore{
 		updatedExpense: model.Expense{ID: "expense-1", Merchant: "Updated Market"},
 	}
-	service := NewExpenseService(store)
+	service := NewExpenseService(store, &stubAuditRecorder{})
 
 	expense, err := service.UpdatePersonal(context.Background(), "expense-1", "user-1", CreateExpenseInput{
 		Amount:        "11.00",
@@ -140,7 +140,7 @@ func TestExpenseServiceDeletePersonal(t *testing.T) {
 	t.Parallel()
 
 	store := &stubExpenseStore{}
-	service := NewExpenseService(store)
+	service := NewExpenseService(store, &stubAuditRecorder{})
 
 	if err := service.DeletePersonal(context.Background(), "expense-1", "user-1"); err != nil {
 		t.Fatalf("delete personal returned error: %v", err)
@@ -149,6 +149,10 @@ func TestExpenseServiceDeletePersonal(t *testing.T) {
 		t.Fatalf("unexpected deleted expense id: %s", store.deletedExpenseID)
 	}
 }
+
+type stubAuditRecorder struct{}
+
+func (s *stubAuditRecorder) Record(context.Context, repository.WriteAuditParams) {}
 
 type stubExpenseStore struct {
 	createParams     repository.CreateExpenseParams
@@ -211,4 +215,13 @@ func (s *stubExpenseStore) DeletePersonal(_ context.Context, expenseID, userID, 
 	s.deletedUserID = userID
 	s.deletedBy = deletedBy
 	return s.err
+}
+
+func (s *stubExpenseStore) RestorePersonal(_ context.Context, expenseID, userID, _ string) (model.Expense, error) {
+	s.getExpenseID = expenseID
+	s.getUserID = userID
+	if s.err != nil {
+		return model.Expense{}, s.err
+	}
+	return s.getExpense, nil
 }
