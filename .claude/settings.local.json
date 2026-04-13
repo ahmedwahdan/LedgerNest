@@ -1,0 +1,17 @@
+{
+  "projectInstructions": [
+    "Do not add co-author trailers to commits.",
+    "Use author name: Ahmed Wahdan",
+    "Use author email: ahmedibrahimwahdan@gmail.com"
+  ],
+  "permissions": {
+    "allow": [
+      "Bash(curl -s https://go.dev/dl/?mode=json)",
+      "Bash(python3 -c \"import json,sys; data=json.load\\(sys.stdin\\); [print\\(v['version']\\) for v in data if v.get\\('stable'\\)==True][:3]\")",
+      "Bash(git config:*)",
+      "Bash(git -C /home/wahdan/playground/expenses-project log --oneline -5)",
+      "Bash(curl -s \"https://proxy.golang.org/github.com/golang-migrate/migrate/v4/@v/list\")",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(d.get\\('tag_name',''\\)\\)\")"
+    ]
+  }
+}
