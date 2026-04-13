@@ -3,17 +3,22 @@
 # Includes hot-reload (air) and all dev tooling.
 # Source is volume-mounted at runtime; nothing is compiled at build time.
 # =============================================================================
-FROM golang:1.22-alpine AS dev
+FROM golang:1.26.1-alpine AS dev
 
 WORKDIR /app
 
 RUN apk --no-cache add git curl bash
 
-# Install dev tools (pinned to avoid breaking changes)
-RUN go install github.com/air-verse/air@latest && \
-    go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest && \
-    go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest && \
-    go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+# Pin tool versions so the dev image stays stable across rebuilds.
+ARG AIR_VERSION=v1.52.3
+ARG SQLC_VERSION=v1.28.0
+ARG MIGRATE_VERSION=v4.18.3
+ARG GOLANGCI_LINT_VERSION=v1.64.8
+
+RUN go install github.com/air-verse/air@${AIR_VERSION} && \
+    go install github.com/sqlc-dev/sqlc/cmd/sqlc@${SQLC_VERSION} && \
+    go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@${MIGRATE_VERSION} && \
+    go install github.com/golangci/golangci-lint/cmd/golangci-lint@${GOLANGCI_LINT_VERSION}
 
 # Pre-download Go module dependencies as a cached layer.
 # This layer is only invalidated when go.mod or go.sum changes.
@@ -29,7 +34,7 @@ CMD ["air", "-c", ".air.toml"]
 # Stage 2 — builder
 # Compiles a static binary for production.
 # =============================================================================
-FROM golang:1.22-alpine AS builder
+FROM golang:1.26.1-alpine AS builder
 
 WORKDIR /app
 
