@@ -16,6 +16,8 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/ahmedwahdan/ledgernest-ci:sha-97aaccf
+    env:
+      GOFLAGS: -buildvcs=false
 
     steps:
       - name: Checkout
