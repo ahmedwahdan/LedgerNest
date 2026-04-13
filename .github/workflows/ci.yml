@@ -13,34 +13,37 @@ jobs:
   backend:
     name: Backend Checks
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: backend/go.mod
-          cache-dependency-path: backend/go.sum
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      - name: Verify formatting
+      - name: Prepare environment
+        run: cp backend/.env.example backend/.env
+
+      - name: Build API container
+        run: docker compose build api
+
+      - name: Verify formatting in container
         run: |
-          fmt_output="$(gofmt -l .)"
-          if [ -n "$fmt_output" ]; then
-            echo "These files are not formatted with gofmt:"
-            echo "$fmt_output"
-            exit 1
-          fi
+          docker compose run --rm api sh -lc '
+            fmt_output="$(gofmt -l .)"
+            if [ -n "$fmt_output" ]; then
+              echo "These files are not formatted with gofmt:"
+              echo "$fmt_output"
+              exit 1
+            fi
+          '
 
-      - name: Run tests
-        run: go test ./...
+      - name: Run unit tests in container
+        run: docker compose run --rm api go test -short ./...
 
-      - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@v8
-        with:
-          version: v2.1.6
-          working-directory: backend
+      - name: Run golangci-lint in container
+        run: docker compose run --rm api golangci-lint run ./...
+
+      - name: Tear down containers
+        if: always()
+        run: docker compose down -v
