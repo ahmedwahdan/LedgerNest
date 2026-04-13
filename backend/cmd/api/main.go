@@ -7,10 +7,12 @@ import (
 	"os"
 	"time"
 
+	"github.com/ahmedwahdan/LedgerNest/backend/internal/auth"
 	"github.com/ahmedwahdan/LedgerNest/backend/internal/config"
 	"github.com/ahmedwahdan/LedgerNest/backend/internal/db"
 	"github.com/ahmedwahdan/LedgerNest/backend/internal/handler"
 	"github.com/ahmedwahdan/LedgerNest/backend/internal/httpx"
+	"github.com/ahmedwahdan/LedgerNest/backend/internal/middleware"
 	"github.com/ahmedwahdan/LedgerNest/backend/internal/repository"
 	"github.com/ahmedwahdan/LedgerNest/backend/internal/service"
 )
@@ -37,8 +39,17 @@ func run() error {
 	defer pool.Close()
 
 	userRepository := repository.NewUserRepository(pool)
-	authService := service.NewAuthService(userRepository)
+	sessionRepository := repository.NewSessionRepository(pool)
+	tokenService := auth.NewTokenService(cfg.JWTSecret)
+	authService := service.NewAuthService(
+		userRepository,
+		sessionRepository,
+		tokenService,
+		cfg.JWTAccessTTL,
+		cfg.JWTRefreshTTL,
+	)
 	authHandler := handler.NewAuthHandler(authService)
+	authMiddleware := middleware.NewAuthMiddleware(tokenService)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
@@ -53,6 +64,9 @@ func run() error {
 		httpx.WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 	})
 	mux.HandleFunc("POST /auth/register", authHandler.Register)
+	mux.HandleFunc("POST /auth/login", authHandler.Login)
+	mux.HandleFunc("POST /auth/refresh", authHandler.Refresh)
+	mux.Handle("GET /auth/me", authMiddleware.RequireAuth(http.HandlerFunc(authHandler.Me)))
 
 	server := &http.Server{
 		Addr:              ":" + cfg.Port,
