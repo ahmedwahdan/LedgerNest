@@ -54,6 +54,7 @@ export default function OnboardingPage() {
         )}
         {step === 'budget' && (
           <BudgetStep
+            householdId={householdId ?? undefined}
             snapshotId={snapshotId ?? undefined}
             onSaved={() => setStep('done')}
             onSkip={() => setStep('done')}
@@ -239,10 +240,12 @@ function CycleStep({
 }
 
 function BudgetStep({
+  householdId,
   snapshotId,
   onSaved,
   onSkip,
 }: {
+  householdId?: string
   snapshotId?: string
   onSaved: () => void
   onSkip: () => void
@@ -259,14 +262,20 @@ function BudgetStep({
       setPending(false)
       return
     }
+    if (!householdId) {
+      setError('Create a household before setting the monthly cap.')
+      setPending(false)
+      return
+    }
     try {
       const res = await fetch('/api/budgets', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          scope: 'personal',
+          scope: 'household',
+          household_id: householdId,
           amount,
-          snapshot_id: snapshotId,
+          snapshot_id: snapshotId || undefined,
         }),
       })
       if (!res.ok) {

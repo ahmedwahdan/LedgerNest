@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { apiFetch, ApiError } from '@/lib/api'
 import type { Household } from '@/lib/definitions'
+import { setActiveHouseholdId } from '@/lib/household-selection'
 
 export async function POST(req: NextRequest) {
   try {
@@ -9,6 +10,7 @@ export async function POST(req: NextRequest) {
       method: 'POST',
       body: JSON.stringify(body),
     })
+    await setActiveHouseholdId(data.household.id)
     return NextResponse.json(data)
   } catch (err) {
     if (err instanceof ApiError) {
