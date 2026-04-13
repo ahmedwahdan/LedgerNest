@@ -32,7 +32,7 @@ type snapshotGetter interface {
 }
 
 type thresholdChecker interface {
-	CheckBudgetThresholds(ctx context.Context, userID string, items []BudgetHealthItem, snapshotID string)
+	CheckBudgetThresholds(ctx context.Context, userID string, items []model.BudgetHealthItem, snapshotID string)
 }
 
 type BudgetService struct {
@@ -221,7 +221,7 @@ func (s *BudgetService) GetHealth(ctx context.Context, requesterID, householdID 
 		Categories: make([]model.BudgetHealthItem, 0),
 	}
 
-	var allItems []BudgetHealthItem
+	var allItems []model.BudgetHealthItem
 	for _, row := range rows {
 		item := buildHealthItem(row)
 		if row.CategoryID == nil {

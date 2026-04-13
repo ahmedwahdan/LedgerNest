@@ -56,7 +56,7 @@ func (s *NotificationService) MarkAllRead(ctx context.Context, userID string) er
 // threshold notifications for any budget that has crossed a new watermark
 // (50 / 75 / 90 / 100 %) since the last check. Failures are logged and
 // swallowed so the health response is never blocked.
-func (s *NotificationService) CheckBudgetThresholds(ctx context.Context, userID string, items []BudgetHealthItem, snapshotID string) {
+func (s *NotificationService) CheckBudgetThresholds(ctx context.Context, userID string, items []model.BudgetHealthItem, snapshotID string) {
 	for _, item := range items {
 		for _, t := range thresholds {
 			if item.PctUsed < float64(t) {
