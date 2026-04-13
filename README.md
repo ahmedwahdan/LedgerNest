@@ -4,6 +4,10 @@
 
 [![CI](https://github.com/ahmedwahdan/LedgerNest/actions/workflows/ci.yml/badge.svg)](https://github.com/ahmedwahdan/LedgerNest/actions/workflows/ci.yml)
 
+## License
+
+This project is proprietary and all rights are reserved. See [LICENSE](LICENSE).
+
 ## Overview
 
 LedgerNest is a rising personal finance project focused on households, shared visibility, and smarter budgeting. The goal is simple: make it easier for people to track spending, stay aligned with family members, and understand what is driving their budget in real terms.

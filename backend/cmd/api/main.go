@@ -40,6 +40,7 @@ func run() error {
 
 	userRepository := repository.NewUserRepository(pool)
 	sessionRepository := repository.NewSessionRepository(pool)
+	expenseRepository := repository.NewExpenseRepository(pool)
 	tokenService := auth.NewTokenService(cfg.JWTSecret)
 	authService := service.NewAuthService(
 		userRepository,
@@ -48,7 +49,9 @@ func run() error {
 		cfg.JWTAccessTTL,
 		cfg.JWTRefreshTTL,
 	)
+	expenseService := service.NewExpenseService(expenseRepository)
 	authHandler := handler.NewAuthHandler(authService)
+	expenseHandler := handler.NewExpenseHandler(expenseService)
 	authMiddleware := middleware.NewAuthMiddleware(tokenService)
 
 	mux := http.NewServeMux()
@@ -67,6 +70,11 @@ func run() error {
 	mux.HandleFunc("POST /auth/login", authHandler.Login)
 	mux.HandleFunc("POST /auth/refresh", authHandler.Refresh)
 	mux.Handle("GET /auth/me", authMiddleware.RequireAuth(http.HandlerFunc(authHandler.Me)))
+	mux.Handle("GET /expenses", authMiddleware.RequireAuth(http.HandlerFunc(expenseHandler.ListPersonal)))
+	mux.Handle("POST /expenses", authMiddleware.RequireAuth(http.HandlerFunc(expenseHandler.CreatePersonal)))
+	mux.Handle("GET /expenses/{id}", authMiddleware.RequireAuth(http.HandlerFunc(expenseHandler.GetPersonal)))
+	mux.Handle("PUT /expenses/{id}", authMiddleware.RequireAuth(http.HandlerFunc(expenseHandler.UpdatePersonal)))
+	mux.Handle("DELETE /expenses/{id}", authMiddleware.RequireAuth(http.HandlerFunc(expenseHandler.DeletePersonal)))
 
 	server := &http.Server{
 		Addr:              ":" + cfg.Port,
