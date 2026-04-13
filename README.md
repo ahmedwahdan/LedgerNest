@@ -22,7 +22,7 @@ It combines shared expense management, flexible budgeting, and insight-driven re
 
 | Layer | Choice |
 |-------|--------|
-| Backend | Go 1.22, Chi router, PostgreSQL 16, sqlc, golang-migrate |
+| Backend | Go 1.26.1, Chi router, PostgreSQL 16, sqlc, golang-migrate |
 | Auth | JWT + refresh tokens |
 | Frontend *(planned)* | Next.js, TypeScript, Tailwind CSS |
 | Environment | Docker Compose |
