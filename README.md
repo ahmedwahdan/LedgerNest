@@ -6,7 +6,10 @@
 
 ## License
 
-This project is proprietary and all rights are reserved. See [LICENSE](LICENSE).
+This project is licensed under the Business Source License 1.1. Source code is
+available for non-production use and contributions, while production use
+requires a separate commercial license until the Change Date described in
+[LICENSE](LICENSE).
 
 ## Overview
 
