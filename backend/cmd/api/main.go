@@ -7,10 +7,12 @@ import (
 	"os"
 	"time"
 
+	"github.com/ahmedwahdan/LedgerNest/backend/internal/auth"
 	"github.com/ahmedwahdan/LedgerNest/backend/internal/config"
 	"github.com/ahmedwahdan/LedgerNest/backend/internal/db"
 	"github.com/ahmedwahdan/LedgerNest/backend/internal/handler"
 	"github.com/ahmedwahdan/LedgerNest/backend/internal/httpx"
+	"github.com/ahmedwahdan/LedgerNest/backend/internal/middleware"
 	"github.com/ahmedwahdan/LedgerNest/backend/internal/repository"
 	"github.com/ahmedwahdan/LedgerNest/backend/internal/service"
 )
@@ -37,8 +39,20 @@ func run() error {
 	defer pool.Close()
 
 	userRepository := repository.NewUserRepository(pool)
-	authService := service.NewAuthService(userRepository)
+	sessionRepository := repository.NewSessionRepository(pool)
+	expenseRepository := repository.NewExpenseRepository(pool)
+	tokenService := auth.NewTokenService(cfg.JWTSecret)
+	authService := service.NewAuthService(
+		userRepository,
+		sessionRepository,
+		tokenService,
+		cfg.JWTAccessTTL,
+		cfg.JWTRefreshTTL,
+	)
+	expenseService := service.NewExpenseService(expenseRepository)
 	authHandler := handler.NewAuthHandler(authService)
+	expenseHandler := handler.NewExpenseHandler(expenseService)
+	authMiddleware := middleware.NewAuthMiddleware(tokenService)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
@@ -53,6 +67,14 @@ func run() error {
 		httpx.WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 	})
 	mux.HandleFunc("POST /auth/register", authHandler.Register)
+	mux.HandleFunc("POST /auth/login", authHandler.Login)
+	mux.HandleFunc("POST /auth/refresh", authHandler.Refresh)
+	mux.Handle("GET /auth/me", authMiddleware.RequireAuth(http.HandlerFunc(authHandler.Me)))
+	mux.Handle("GET /expenses", authMiddleware.RequireAuth(http.HandlerFunc(expenseHandler.ListPersonal)))
+	mux.Handle("POST /expenses", authMiddleware.RequireAuth(http.HandlerFunc(expenseHandler.CreatePersonal)))
+	mux.Handle("GET /expenses/{id}", authMiddleware.RequireAuth(http.HandlerFunc(expenseHandler.GetPersonal)))
+	mux.Handle("PUT /expenses/{id}", authMiddleware.RequireAuth(http.HandlerFunc(expenseHandler.UpdatePersonal)))
+	mux.Handle("DELETE /expenses/{id}", authMiddleware.RequireAuth(http.HandlerFunc(expenseHandler.DeletePersonal)))
 
 	server := &http.Server{
 		Addr:              ":" + cfg.Port,

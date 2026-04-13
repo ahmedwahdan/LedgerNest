@@ -1,5 +1,18 @@
 # LedgerNest — Feature Spec & Architecture (MVP)
 
+## Current Implementation Progress
+
+Implemented in the backend right now:
+- Auth: `POST /auth/register`, `POST /auth/login`, `POST /auth/refresh`, `GET /auth/me`
+- Auth infrastructure: bearer-token middleware, access-token verification, persisted refresh-token sessions
+- Personal expenses: `GET /expenses`, `GET /expenses/:id`, `POST /expenses`, `PUT /expenses/:id`, `DELETE /expenses/:id`
+- Expense deletion is currently soft-delete based
+
+Not implemented yet:
+- Logout, email verification, forgot/reset password
+- Household, budgets, categories, analytics, notifications
+- Expense restore/history endpoints, pagination, and richer expense filtering
+
 ## 1. Authentication & User Management
 
 ### Login / Registration
@@ -220,16 +233,16 @@ notifications (
 #### Core API Endpoints
 ```
 Auth:
-  POST   /auth/register
-  POST   /auth/login
+  POST   /auth/register                 [implemented]
+  POST   /auth/login                    [implemented]
   POST   /auth/logout
-  POST   /auth/refresh
+  POST   /auth/refresh                  [implemented]
   POST   /auth/verify-email
   POST   /auth/forgot-password
   POST   /auth/reset-password
 
 Profile:
-  GET    /me
+  GET    /auth/me                       [implemented]
   PUT    /me
   DELETE /me
 
@@ -265,11 +278,11 @@ Budgets:
   GET    /budgets/health                 (current cycle health summary)
 
 Expenses:
-  GET    /expenses                       (?from=, ?to=, ?category_id=, ?scope=, ?page=, ?limit=)
-  POST   /expenses
-  GET    /expenses/:id
-  PUT    /expenses/:id
-  DELETE /expenses/:id
+  GET    /expenses                       [implemented: personal scope only, supports from/to/merchant/category_id filters]
+  POST   /expenses                       [implemented: personal scope only]
+  GET    /expenses/:id                   [implemented: personal scope only]
+  PUT    /expenses/:id                   [implemented: personal scope only]
+  DELETE /expenses/:id                   [implemented: personal scope only]
   POST   /expenses/:id/restore
   GET    /expenses/:id/history
 
@@ -310,14 +323,16 @@ The web app is built mobile-first and responsive. It serves as the primary inter
 ## 8. Build Order (MVP)
 
 ### Phase 1 — Backend Foundation
-- [ ] Go project setup: module, folder structure, config, middleware, error handling
-- [ ] Database schema + migrations (golang-migrate)
+- [x] Go project setup: module, folder structure, config, middleware, error handling
+- [x] Database schema + migrations (golang-migrate)
 - [ ] sqlc setup + query definitions
 - [ ] Auth: register, login, logout, refresh, email verification, password reset
+  Current status: register, login, refresh, and authenticated user lookup are implemented; logout and recovery/verification flows are still missing.
 - [ ] Household: create, settings, invite, manage members and roles
 - [ ] Budget cycle config + snapshot generation (auto-create on cycle config)
 - [ ] Seed default category tree
 - [ ] CRUD: categories, expenses (with soft-delete + restore), budgets
+  Current status: personal expense create/get/list/update/delete is implemented; basic list filters are implemented for `from`, `to`, `merchant`, and `category_id`. Restore, history, pagination, categories, and budgets are still missing.
 - [ ] Budget health calculations (spent vs. remaining per category and overall)
 - [ ] Audit log middleware (auto-captures create/update/delete on key entities)
 - [ ] API tests for all endpoints
