@@ -8,6 +8,8 @@ const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: DashboardIcon },
   { href: '/expenses', label: 'Expenses', icon: ExpensesIcon },
   { href: '/budgets', label: 'Budgets', icon: BudgetsIcon },
+  { href: '/households', label: 'Households', icon: HouseholdsIcon },
+  { href: '/analytics', label: 'Analytics', icon: AnalyticsIcon },
 ]
 
 export function Sidebar() {
@@ -87,6 +89,23 @@ function BudgetsIcon({ className }: { className?: string }) {
     <svg className={className} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
       <circle cx="8" cy="8" r="6.5" />
       <path d="M8 4v4l2.5 2.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+function AnalyticsIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <path d="M1 12.5 5.5 7l3 3L12 5l3 3" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+function HouseholdsIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <path d="M1 7.5 8 2l7 5.5V14.5H1V7.5Z" strokeLinejoin="round" />
+      <path d="M5.5 14.5v-4h5v4" strokeLinejoin="round" />
     </svg>
   )
 }

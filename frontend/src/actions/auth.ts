@@ -69,7 +69,7 @@ export async function register(_prev: ActionState, formData: FormData): Promise<
     return { success: false, error: 'Something went wrong. Please try again.' }
   }
 
-  redirect('/dashboard')
+  redirect('/onboarding')
 }
 
 export async function logout() {

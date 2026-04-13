@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-const protectedPrefixes = ['/dashboard', '/expenses', '/budgets', '/households', '/settings']
+const protectedPrefixes = ['/dashboard', '/expenses', '/budgets', '/households', '/settings', '/onboarding']
 const authPaths = ['/login', '/register']
 
 export function proxy(req: NextRequest) {

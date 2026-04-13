@@ -356,12 +356,14 @@ The web app is built mobile-first and responsive. It serves as the primary inter
 - [x] Expense list with filters (from/to date, merchant search)
 - [x] Expense detail: inline edit, delete (soft), restore, audit history timeline
 - [x] Budget management: health view (overall cap + per-category bars), add/remove budgets
-- [ ] Onboarding wizard: household setup, budget cycle config
-- [ ] Household management pages (members, invitations, roles)
-- [ ] Analytics pages: category breakdown, trends, merchant ranking
+- [x] Onboarding wizard: household setup (step 1) → budget cycle (step 2) → first budget (step 3)
+- [x] Household management: create, view, members with role picker, invite by email, revoke invitations, leave/delete, cycle config inline
+- [x] Analytics: spending by category (horizontal bars, % of total), top merchants, summary stats (total, count, avg), date range picker
+- [x] CSV export: client-side download from analytics page, filtered by current date range
+- [x] Dark mode: full CSS variable overrides via prefers-color-scheme; shimmer skeleton loader utility
+- [x] Mobile-responsive: bottom navigation bar on mobile (lg:hidden), extra bottom padding in app shell
 - [ ] Notifications panel
-- [ ] CSV export
-- [ ] Dark mode + mobile-responsive polish throughout
+- [ ] Email verification + forgot/reset password flows
 
 ---
 
