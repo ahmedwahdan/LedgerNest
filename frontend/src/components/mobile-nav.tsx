@@ -6,8 +6,8 @@ import { usePathname } from 'next/navigation'
 const mobileItems = [
   { href: '/dashboard', label: 'Home', icon: HomeIcon },
   { href: '/expenses', label: 'Expenses', icon: ExpensesIcon },
+  { href: '/categories', label: 'Categories', icon: CategoriesIcon },
   { href: '/budgets', label: 'Budgets', icon: BudgetsIcon },
-  { href: '/analytics', label: 'Analytics', icon: AnalyticsIcon },
   { href: '/households', label: 'Household', icon: HouseholdsIcon },
 ]
 
@@ -65,10 +65,10 @@ function BudgetsIcon({ className }: { className?: string }) {
   )
 }
 
-function AnalyticsIcon({ className }: { className?: string }) {
+function CategoriesIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-      <path d="M1 12.5 5.5 7l3 3L12 5l3 3" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M3 3.5h10v3H3zM3 9.5h6v3H3zM11 9.5h2v3h-2z" strokeLinejoin="round" />
     </svg>
   )
 }

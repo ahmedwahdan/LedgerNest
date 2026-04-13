@@ -1,13 +1,17 @@
 import { apiFetch } from '@/lib/api'
+import { getActiveHousehold } from '@/lib/household-context'
 import type { Budget, BudgetHealth, Category } from '@/lib/definitions'
 import { DeleteBudgetButton } from './delete-budget-button'
 import { AddBudgetPanel } from './add-budget-panel'
 
 async function getData() {
+  const activeHousehold = await getActiveHousehold()
   const [healthRes, budgetsRes, categoriesRes] = await Promise.allSettled([
     apiFetch<BudgetHealth>('/budgets/health?scope=personal'),
     apiFetch<{ budgets: Budget[] }>('/budgets?scope=personal'),
-    apiFetch<{ categories: Category[] }>('/categories'),
+    apiFetch<{ categories: Category[] }>(
+      activeHousehold ? `/categories?household_id=${encodeURIComponent(activeHousehold.id)}` : '/categories',
+    ),
   ])
 
   return {

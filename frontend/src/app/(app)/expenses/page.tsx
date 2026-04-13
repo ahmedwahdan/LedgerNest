@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { apiFetch } from '@/lib/api'
+import { getActiveHousehold } from '@/lib/household-context'
 import type { Expense, Category } from '@/lib/definitions'
 import { AddExpenseButton } from './add-expense-button'
 
@@ -8,6 +9,7 @@ interface PageProps {
 }
 
 async function getData(params: { from?: string; to?: string; merchant?: string }) {
+  const activeHousehold = await getActiveHousehold()
   const qs = new URLSearchParams()
   if (params.from) qs.set('from', params.from)
   if (params.to) qs.set('to', params.to)
@@ -16,7 +18,9 @@ async function getData(params: { from?: string; to?: string; merchant?: string }
 
   const [expensesRes, categoriesRes] = await Promise.allSettled([
     apiFetch<{ expenses: Expense[] }>(`/expenses?${qs}`),
-    apiFetch<{ categories: Category[] }>('/categories'),
+    apiFetch<{ categories: Category[] }>(
+      activeHousehold ? `/categories?household_id=${encodeURIComponent(activeHousehold.id)}` : '/categories',
+    ),
   ])
 
   return {
@@ -106,12 +110,12 @@ function FilterBar({ params }: { params: { from?: string; to?: string; merchant?
         Filter
       </button>
       {(params.from || params.to || params.merchant) && (
-        <a
+        <Link
           href="/expenses"
           className="rounded-xl border border-[var(--line)] bg-white/80 px-4 py-2 text-sm text-muted transition hover:bg-white"
         >
           Clear
-        </a>
+        </Link>
       )}
     </form>
   )

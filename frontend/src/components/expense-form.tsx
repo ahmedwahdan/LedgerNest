@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { useActionState } from 'react'
 import type { Expense, Category, ActionState } from '@/lib/definitions'
 
@@ -11,8 +12,10 @@ interface ExpenseFormProps {
 }
 
 const PAYMENT_METHODS = ['card', 'cash', 'bank_transfer', 'other']
+const RECURRENCE_INTERVALS = ['weekly', 'biweekly', 'monthly']
 
 export function ExpenseForm({ action, expense, categories, onSuccess }: ExpenseFormProps) {
+  const [isRecurring, setIsRecurring] = useState(expense?.is_recurring ?? false)
   const [state, formAction, pending] = useActionState<ActionState, FormData>(
     async (prev, formData) => {
       const result = await action(prev, formData)
@@ -122,6 +125,42 @@ export function ExpenseForm({ action, expense, categories, onSuccess }: ExpenseF
           className="w-full rounded-[0.9rem] border border-[var(--line)] bg-white/80 px-4 py-2.5 text-sm outline-none transition focus:border-[var(--accent)]"
         />
       </label>
+
+      <section className="rounded-[1rem] border border-[var(--line)] bg-white/55 p-4">
+        <label className="flex items-center gap-3">
+          <input
+            name="is_recurring"
+            type="checkbox"
+            defaultChecked={expense?.is_recurring ?? false}
+            onChange={(event) => setIsRecurring(event.target.checked)}
+            className="h-4 w-4 rounded accent-[var(--accent)]"
+          />
+          <span>
+            <span className="block text-sm font-medium">Recurring expense</span>
+            <span className="block text-xs text-muted">
+              Use this for subscriptions, rent, or other repeated spending.
+            </span>
+          </span>
+        </label>
+
+        {isRecurring && (
+          <label className="mt-4 block">
+            <span className="mb-1.5 block text-sm text-muted">Interval *</span>
+            <select
+              name="recurrence_interval"
+              defaultValue={expense?.recurrence_interval ?? 'monthly'}
+              required={isRecurring}
+              className="w-full rounded-[0.9rem] border border-[var(--line)] bg-white/80 px-4 py-2.5 text-sm outline-none transition focus:border-[var(--accent)]"
+            >
+              {RECURRENCE_INTERVALS.map((interval) => (
+                <option key={interval} value={interval}>
+                  {interval}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+      </section>
 
       {state && !state.success && (
         <p className="rounded-[0.9rem] bg-red-50 px-4 py-3 text-sm text-red-700">{state.error}</p>

@@ -3,16 +3,18 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { logout } from '@/actions/auth'
+import type { User } from '@/lib/definitions'
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: DashboardIcon },
   { href: '/expenses', label: 'Expenses', icon: ExpensesIcon },
+  { href: '/categories', label: 'Categories', icon: CategoriesIcon },
   { href: '/budgets', label: 'Budgets', icon: BudgetsIcon },
   { href: '/households', label: 'Households', icon: HouseholdsIcon },
   { href: '/analytics', label: 'Analytics', icon: AnalyticsIcon },
 ]
 
-export function Sidebar() {
+export function Sidebar({ user }: { user: User }) {
   const pathname = usePathname()
 
   return (
@@ -24,6 +26,7 @@ export function Sidebar() {
           </div>
           <div>
             <p className="display-font text-lg leading-none">LedgerNest</p>
+            <p className="mt-1 text-xs text-muted">{user.display_name}</p>
           </div>
         </div>
 
@@ -50,6 +53,10 @@ export function Sidebar() {
       </div>
 
       <div className="px-2">
+        <div className="mb-3 rounded-2xl border border-[var(--line)] bg-white/55 px-4 py-3">
+          <p className="text-sm font-medium">{user.display_name}</p>
+          <p className="mt-1 truncate text-xs text-muted">{user.email}</p>
+        </div>
         <form action={logout}>
           <button
             type="submit"
@@ -89,6 +96,14 @@ function BudgetsIcon({ className }: { className?: string }) {
     <svg className={className} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
       <circle cx="8" cy="8" r="6.5" />
       <path d="M8 4v4l2.5 2.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+function CategoriesIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <path d="M3 3.5h10v3H3zM3 9.5h6v3H3zM11 9.5h2v3h-2z" strokeLinejoin="round" />
     </svg>
   )
 }

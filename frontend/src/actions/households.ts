@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { apiFetch, ApiError } from '@/lib/api'
 import type { Household } from '@/lib/definitions'
 import type { ActionState } from '@/lib/definitions'
+import { setActiveHouseholdId } from '@/lib/household-selection'
 
 export async function createHousehold(
   _prev: ActionState,
@@ -25,6 +26,7 @@ export async function createHousehold(
     return { success: false, error: 'Failed to create household.' }
   }
 
+  await setActiveHouseholdId(household.id)
   revalidatePath('/households')
   redirect(`/households/${household.id}`)
 }
@@ -135,6 +137,16 @@ export async function acceptInvitation(
 
   revalidatePath('/households')
   return { success: true, message: 'You have joined the household.' }
+}
+
+export async function selectActiveHousehold(householdId: string) {
+  await setActiveHouseholdId(householdId)
+  revalidatePath('/dashboard')
+  revalidatePath('/expenses')
+  revalidatePath('/budgets')
+  revalidatePath('/analytics')
+  revalidatePath('/categories')
+  revalidatePath('/households')
 }
 
 export async function setCycleConfig(

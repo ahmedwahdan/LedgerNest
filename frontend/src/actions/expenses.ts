@@ -14,6 +14,8 @@ export async function createExpense(_prev: ActionState, formData: FormData): Pro
   const date = formData.get('date') as string
   const notes = formData.get('notes') as string | null
   const categoryId = formData.get('category_id') as string | null
+  const isRecurring = formData.get('is_recurring') === 'on'
+  const recurrenceInterval = formData.get('recurrence_interval') as string | null
 
   try {
     await apiFetch<{ expense: Expense }>('/expenses', {
@@ -26,6 +28,8 @@ export async function createExpense(_prev: ActionState, formData: FormData): Pro
         date,
         notes: notes || undefined,
         category_id: categoryId || undefined,
+        is_recurring: isRecurring,
+        recurrence_interval: isRecurring ? recurrenceInterval || undefined : undefined,
       }),
     })
   } catch (err) {
@@ -52,6 +56,8 @@ export async function updateExpense(
   const date = formData.get('date') as string
   const notes = formData.get('notes') as string | null
   const categoryId = formData.get('category_id') as string | null
+  const isRecurring = formData.get('is_recurring') === 'on'
+  const recurrenceInterval = formData.get('recurrence_interval') as string | null
 
   try {
     await apiFetch<{ expense: Expense }>(`/expenses/${expenseId}`, {
@@ -64,6 +70,8 @@ export async function updateExpense(
         date,
         notes: notes || undefined,
         category_id: categoryId || undefined,
+        is_recurring: isRecurring,
+        recurrence_interval: isRecurring ? recurrenceInterval || undefined : undefined,
       }),
     })
   } catch (err) {

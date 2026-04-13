@@ -13,6 +13,10 @@ interface AuthResponse {
   user: User
 }
 
+interface RegisterResponse {
+  user: User
+}
+
 export async function login(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const email = formData.get('email') as string
   const password = formData.get('password') as string
@@ -54,16 +58,25 @@ export async function register(_prev: ActionState, formData: FormData): Promise<
   }
 
   try {
-    const data = await apiFetch<AuthResponse>('/auth/register', {
+    await apiFetch<RegisterResponse>('/auth/register', {
       method: 'POST',
       body: JSON.stringify({ email, password, display_name: displayName }),
       token: '',
     })
-    await setTokens(data.access_token, data.refresh_token, data.expires_at)
+
+    const loginData = await apiFetch<AuthResponse>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+      token: '',
+    })
+    await setTokens(loginData.access_token, loginData.refresh_token, loginData.expires_at)
   } catch (err) {
     if (err instanceof ApiError) {
       if (err.status === 409) {
         return { success: false, error: 'An account with this email already exists.' }
+      }
+      if (err.status === 400 || err.status === 401) {
+        return { success: false, error: 'Unable to sign you in after registration. Please try logging in.' }
       }
     }
     return { success: false, error: 'Something went wrong. Please try again.' }

@@ -1,4 +1,5 @@
 import { apiFetch } from '@/lib/api'
+import { getActiveHousehold } from '@/lib/household-context'
 import type { Expense, Category } from '@/lib/definitions'
 import { SpendingCharts } from './spending-charts'
 
@@ -16,10 +17,13 @@ function currentMonthBounds() {
 }
 
 async function getData(from: string, to: string) {
+  const activeHousehold = await getActiveHousehold()
   const qs = new URLSearchParams({ from, to, limit: '200' })
   const [expensesRes, categoriesRes] = await Promise.allSettled([
     apiFetch<{ expenses: Expense[] }>(`/expenses?${qs}`),
-    apiFetch<{ categories: Category[] }>('/categories'),
+    apiFetch<{ categories: Category[] }>(
+      activeHousehold ? `/categories?household_id=${encodeURIComponent(activeHousehold.id)}` : '/categories',
+    ),
   ])
 
   return {

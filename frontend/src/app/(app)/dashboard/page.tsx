@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { apiFetch } from '@/lib/api'
 import type { Expense, BudgetHealth } from '@/lib/definitions'
+import { getCurrentUser } from '@/lib/current-user'
 
 async function getDashboardData() {
   const [expensesRes, healthRes] = await Promise.allSettled([
@@ -15,6 +16,7 @@ async function getDashboardData() {
 }
 
 export default async function DashboardPage() {
+  const user = await getCurrentUser()
   const { expenses, health } = await getDashboardData()
 
   return (
@@ -22,7 +24,13 @@ export default async function DashboardPage() {
       <div className="mx-auto w-full max-w-5xl space-y-6 px-5 py-8 sm:px-8">
         <header>
           <p className="text-sm uppercase tracking-[0.28em] text-muted">Overview</p>
-          <h1 className="display-font mt-1 text-4xl">Dashboard</h1>
+          <h1 className="display-font mt-1 text-4xl">
+            {user ? `Welcome back, ${user.display_name}` : 'Dashboard'}
+          </h1>
+          <p className="mt-2 max-w-2xl text-sm text-muted">
+            Track the latest budget movement, keep an eye on your recent expenses,
+            and move quickly into the parts of LedgerNest that still need setup.
+          </p>
         </header>
 
         {/* Budget health */}

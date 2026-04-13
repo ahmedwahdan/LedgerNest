@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { apiFetch, ApiError } from '@/lib/api'
+import { getActiveHousehold } from '@/lib/household-context'
 import type { Expense, Category, AuditLogEntry } from '@/lib/definitions'
 import { EditExpensePanel } from './edit-expense-panel'
 import { DeleteRestoreButtons } from './delete-restore-buttons'
@@ -11,9 +12,12 @@ interface PageProps {
 
 async function getData(id: string) {
   try {
+    const activeHousehold = await getActiveHousehold()
     const [expenseRes, categoriesRes, historyRes] = await Promise.allSettled([
       apiFetch<{ expense: Expense }>(`/expenses/${id}`),
-      apiFetch<{ categories: Category[] }>('/categories'),
+      apiFetch<{ categories: Category[] }>(
+        activeHousehold ? `/categories?household_id=${encodeURIComponent(activeHousehold.id)}` : '/categories',
+      ),
       apiFetch<{ history: AuditLogEntry[] }>(`/expenses/${id}/history`),
     ])
 
