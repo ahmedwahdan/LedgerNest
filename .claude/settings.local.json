@@ -2,7 +2,9 @@
   "projectInstructions": [
     "Do not add co-author trailers to commits.",
     "Use author name: Ahmed Wahdan",
-    "Use author email: ahmedibrahimwahdan@gmail.com"
+    "Use author email: ahmedibrahimwahdan@gmail.com",
+    "Update the plan whenever something is finished or materially changes.",
+    "After a PR is merged, delete the feature branch unless there is a concrete reason to keep it."
   ],
   "permissions": {
     "allow": [
