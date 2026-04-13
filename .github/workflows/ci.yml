@@ -3,6 +3,7 @@ name: CI
 on:
   push:
     branches:
+      - dev
       - main
   pull_request:
 
@@ -13,37 +14,31 @@ jobs:
   backend:
     name: Backend Checks
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/ahmedwahdan/ledgernest-ci:sha-97aaccf
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Prepare environment
-        run: cp backend/.env.example backend/.env
-
-      - name: Build API container
-        run: docker compose build api
-
-      - name: Verify formatting in container
+      - name: Verify formatting
+        working-directory: backend
         run: |
-          docker compose run --rm api sh -lc '
-            fmt_output="$(gofmt -l .)"
-            if [ -n "$fmt_output" ]; then
-              echo "These files are not formatted with gofmt:"
-              echo "$fmt_output"
-              exit 1
-            fi
-          '
+          fmt_output="$(gofmt -l .)"
+          if [ -n "$fmt_output" ]; then
+            echo "These files are not formatted with gofmt:"
+            echo "$fmt_output"
+            exit 1
+          fi
 
-      - name: Run unit tests in container
-        run: docker compose run --rm api go test -short ./...
+      - name: Download modules
+        working-directory: backend
+        run: go mod download
 
-      - name: Run golangci-lint in container
-        run: docker compose run --rm api golangci-lint run ./...
+      - name: Run unit tests
+        working-directory: backend
+        run: go test -short ./...
 
-      - name: Tear down containers
-        if: always()
-        run: docker compose down -v
+      - name: Run golangci-lint
+        working-directory: backend
+        run: golangci-lint run ./...
