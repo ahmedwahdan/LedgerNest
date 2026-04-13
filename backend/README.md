@@ -73,7 +73,7 @@ See [`.env.example`](.env.example) for the full list with descriptions.
 
 | Concern | Choice |
 |---------|--------|
-| Language | Go 1.22 |
+| Language | Go 1.26.1 |
 | Router | Chi v5 |
 | Database | PostgreSQL 16 |
 | DB driver | pgx/v5 |
