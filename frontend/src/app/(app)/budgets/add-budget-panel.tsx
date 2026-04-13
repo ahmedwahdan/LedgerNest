@@ -8,9 +8,11 @@ import type { Category, ActionState } from '@/lib/definitions'
 export function AddBudgetPanel({
   categories,
   snapshotId,
+  householdId,
 }: {
   categories: Category[]
   snapshotId?: string
+  householdId?: string
 }) {
   const [open, setOpen] = useState(false)
   const [state, action, pending] = useActionState<ActionState, FormData>(
@@ -48,6 +50,9 @@ export function AddBudgetPanel({
             </div>
 
             <form action={action} className="space-y-4">
+              {householdId && (
+                <input type="hidden" name="household_id" value={householdId} />
+              )}
               {snapshotId && (
                 <input type="hidden" name="snapshot_id" value={snapshotId} />
               )}
@@ -93,6 +98,12 @@ export function AddBudgetPanel({
               >
                 {pending ? 'Saving…' : 'Create budget'}
               </button>
+
+              {!householdId && (
+                <p className="text-center text-xs text-muted">
+                  Create or select a household before adding budgets.
+                </p>
+              )}
             </form>
           </div>
         </div>

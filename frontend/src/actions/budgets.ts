@@ -11,12 +11,16 @@ export async function createBudget(_prev: ActionState, formData: FormData): Prom
   const snapshotId = formData.get('snapshot_id') as string | null
   const categoryId = formData.get('category_id') as string | null
 
+  if (!householdId) {
+    return { success: false, error: 'Select a household before creating a budget.' }
+  }
+
   try {
     await apiFetch<{ budget: Budget }>('/budgets', {
       method: 'POST',
       body: JSON.stringify({
-        scope: householdId ? 'household' : 'personal',
-        household_id: householdId || undefined,
+        scope: 'household',
+        household_id: householdId,
         snapshot_id: snapshotId || undefined,
         category_id: categoryId || undefined,
         amount,
@@ -34,8 +38,10 @@ export async function createBudget(_prev: ActionState, formData: FormData): Prom
   return { success: true }
 }
 
-export async function deleteBudget(budgetId: string) {
-  await apiFetch(`/budgets/${budgetId}`, { method: 'DELETE' })
+export async function deleteBudget(budgetId: string, householdId: string) {
+  await apiFetch(`/budgets/${budgetId}?household_id=${encodeURIComponent(householdId)}`, {
+    method: 'DELETE',
+  })
   revalidatePath('/budgets')
   revalidatePath('/dashboard')
 }

@@ -1,23 +1,85 @@
 import Link from 'next/link'
 import { apiFetch } from '@/lib/api'
-import type { Expense, BudgetHealth } from '@/lib/definitions'
+import { getActiveHousehold } from '@/lib/household-context'
+import type {
+  BudgetCycleConfig,
+  BudgetHealth,
+  CycleSnapshot,
+  Expense,
+  Household,
+} from '@/lib/definitions'
 import { getCurrentUser } from '@/lib/current-user'
 
+interface HouseholdMember {
+  id: string
+  household_id: string
+  user_id: string
+  display_name: string
+  email: string
+  role: string
+  joined_at: string
+}
+
+interface Invitation {
+  id: string
+  household_id: string
+  email: string
+  role: string
+  status: string
+  expires_at: string
+  created_at: string
+}
+
+interface CycleState {
+  config: BudgetCycleConfig
+  current_snapshot: CycleSnapshot
+}
+
 async function getDashboardData() {
-  const [expensesRes, healthRes] = await Promise.allSettled([
+  const activeHousehold = await getActiveHousehold()
+
+  const [expensesRes, healthRes, householdRes, membersRes, invitationsRes, cycleRes] =
+    await Promise.allSettled([
     apiFetch<{ expenses: Expense[] }>('/expenses?limit=5'),
-    apiFetch<BudgetHealth>('/budgets/health?scope=personal'),
-  ])
+    activeHousehold
+      ? apiFetch<BudgetHealth>(
+          `/budgets/health?household_id=${encodeURIComponent(activeHousehold.id)}`,
+        )
+      : Promise.resolve(null),
+    activeHousehold
+      ? apiFetch<{ household: Household }>(`/households/${activeHousehold.id}`)
+      : Promise.resolve(null),
+    activeHousehold
+      ? apiFetch<{ members: HouseholdMember[] }>(`/households/${activeHousehold.id}/members`)
+      : Promise.resolve(null),
+    activeHousehold
+      ? apiFetch<{ invitations: Invitation[] }>(`/households/${activeHousehold.id}/invitations`)
+      : Promise.resolve(null),
+    activeHousehold
+      ? apiFetch<CycleState>(`/households/${activeHousehold.id}/cycle`)
+      : Promise.resolve(null),
+    ])
 
   const expenses = expensesRes.status === 'fulfilled' ? expensesRes.value.expenses : []
-  const health = healthRes.status === 'fulfilled' ? healthRes.value : null
+  const health =
+    healthRes.status === 'fulfilled' && healthRes.value ? healthRes.value : null
+  const household =
+    householdRes.status === 'fulfilled' && householdRes.value ? householdRes.value.household : null
+  const members =
+    membersRes.status === 'fulfilled' && membersRes.value ? membersRes.value.members : []
+  const invitations =
+    invitationsRes.status === 'fulfilled' && invitationsRes.value
+      ? invitationsRes.value.invitations
+      : []
+  const cycle =
+    cycleRes.status === 'fulfilled' && cycleRes.value ? cycleRes.value : null
 
-  return { expenses, health }
+  return { expenses, health, household, members, invitations, cycle }
 }
 
 export default async function DashboardPage() {
   const user = await getCurrentUser()
-  const { expenses, health } = await getDashboardData()
+  const { expenses, health, household, members, invitations, cycle } = await getDashboardData()
 
   return (
     <div className="shell-grid flex flex-1 flex-col overflow-auto">
@@ -32,6 +94,17 @@ export default async function DashboardPage() {
             and move quickly into the parts of LedgerNest that still need setup.
           </p>
         </header>
+
+        {household ? (
+          <HouseholdOverviewCard
+            household={household}
+            members={members}
+            invitations={invitations}
+            cycle={cycle}
+          />
+        ) : (
+          <NoHouseholdCard />
+        )}
 
         {/* Budget health */}
         {health ? (
@@ -80,6 +153,61 @@ export default async function DashboardPage() {
         </section>
       </div>
     </div>
+  )
+}
+
+function HouseholdOverviewCard({
+  household,
+  members,
+  invitations,
+  cycle,
+}: {
+  household: Household
+  members: HouseholdMember[]
+  invitations: Invitation[]
+  cycle: CycleState | null
+}) {
+  const ownerCount = members.filter((member) => member.role === 'owner').length
+  const editorCount = members.filter((member) => member.role === 'editor').length
+
+  return (
+    <section className="glass-panel rounded-[2rem] p-6 sm:p-8">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-sm uppercase tracking-[0.28em] text-muted">Active household</p>
+          <h2 className="display-font mt-1 text-3xl">{household.name}</h2>
+          <p className="mt-2 max-w-2xl text-sm text-muted">
+            The dashboard is currently scoped to this household. Switch households from the header
+            to compare members, invites, and budget progress.
+          </p>
+        </div>
+        <Link
+          href={`/households/${household.id}`}
+          className="rounded-full border border-[var(--line)] px-4 py-2 text-sm transition hover:bg-white/70"
+        >
+          Open household
+        </Link>
+      </div>
+
+      <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard label="Members" value={String(members.length)} detail={`${ownerCount} owners`} />
+        <StatCard label="Editors" value={String(editorCount)} detail="Can contribute expenses" />
+        <StatCard
+          label="Pending invites"
+          value={String(invitations.length)}
+          detail={invitations.length > 0 ? 'Waiting on responses' : 'No pending invites'}
+        />
+        <StatCard
+          label="Budget cycle"
+          value={cycle?.current_snapshot.label ?? 'Not set'}
+          detail={
+            cycle
+              ? `${cycle.current_snapshot.cycle_start} to ${cycle.current_snapshot.cycle_end}`
+              : 'Configure your cycle'
+          }
+        />
+      </div>
+    </section>
   )
 }
 
@@ -175,6 +303,24 @@ function BudgetHealthCard({ health }: { health: BudgetHealth }) {
   )
 }
 
+function StatCard({
+  label,
+  value,
+  detail,
+}: {
+  label: string
+  value: string
+  detail: string
+}) {
+  return (
+    <div className="rounded-[1.2rem] border border-[var(--line)] bg-white/65 p-4">
+      <p className="text-xs uppercase tracking-[0.18em] text-muted">{label}</p>
+      <p className="mt-2 text-lg font-semibold">{value}</p>
+      <p className="mt-1 text-xs text-muted">{detail}</p>
+    </div>
+  )
+}
+
 function NoBudgetCard() {
   return (
     <section className="glass-panel rounded-[2rem] p-6 sm:p-8">
@@ -185,6 +331,27 @@ function NoBudgetCard() {
           Get started
         </Link>
       </p>
+    </section>
+  )
+}
+
+function NoHouseholdCard() {
+  return (
+    <section className="glass-panel rounded-[2rem] p-6 sm:p-8">
+      <p className="text-sm uppercase tracking-[0.28em] text-muted">Household</p>
+      <h2 className="display-font mt-1 text-3xl">Set up your shared workspace</h2>
+      <p className="mt-3 max-w-2xl text-sm text-muted">
+        Create a household to unlock shared budgets, invitations, and a meaningful dashboard. Once
+        one is active, this page will show its members, cycle, and budget health.
+      </p>
+      <div className="mt-5">
+        <Link
+          href="/households"
+          className="rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[var(--accent-strong)]"
+        >
+          Create a household
+        </Link>
+      </div>
     </section>
   )
 }

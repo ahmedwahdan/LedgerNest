@@ -4,7 +4,13 @@ import { useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { deleteBudget } from '@/actions/budgets'
 
-export function DeleteBudgetButton({ budgetId }: { budgetId: string }) {
+export function DeleteBudgetButton({
+  budgetId,
+  householdId,
+}: {
+  budgetId: string
+  householdId: string
+}) {
   const [pending, startTransition] = useTransition()
   const router = useRouter()
 
@@ -14,7 +20,7 @@ export function DeleteBudgetButton({ budgetId }: { budgetId: string }) {
       onClick={() => {
         if (!confirm('Remove this budget cap?')) return
         startTransition(async () => {
-          await deleteBudget(budgetId)
+          await deleteBudget(budgetId, householdId)
           router.refresh()
         })
       }}
