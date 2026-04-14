@@ -13,11 +13,11 @@ import (
 )
 
 var (
-	ErrHouseholdNotFound     = errors.New("household not found")
-	ErrMemberNotFound        = errors.New("household member not found")
-	ErrAlreadyMember         = errors.New("user is already a member of this household")
-	ErrInvitationNotFound    = errors.New("invitation not found")
-	ErrInvitationConflict    = errors.New("a pending invitation for this email already exists")
+	ErrHouseholdNotFound  = errors.New("household not found")
+	ErrMemberNotFound     = errors.New("household member not found")
+	ErrAlreadyMember      = errors.New("user is already a member of this household")
+	ErrInvitationNotFound = errors.New("invitation not found")
+	ErrInvitationConflict = errors.New("a pending invitation for this email already exists")
 )
 
 type HouseholdRepository struct {
@@ -286,11 +286,11 @@ func (r *HouseholdRepository) CountOwners(ctx context.Context, householdID strin
 // ── Invitations ───────────────────────────────────────────────────────────────
 
 type CreateInvitationParams struct {
-	HouseholdID    string
-	Email          string
-	Role           string
-	TokenHash      string
-	ExpiresAt      time.Time
+	HouseholdID string
+	Email       string
+	Role        string
+	TokenHash   string
+	ExpiresAt   time.Time
 }
 
 func (r *HouseholdRepository) CreateInvitation(ctx context.Context, params CreateInvitationParams) (model.Invitation, error) {

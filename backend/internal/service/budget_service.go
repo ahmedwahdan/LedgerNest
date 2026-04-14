@@ -12,8 +12,8 @@ import (
 )
 
 var (
-	ErrBudgetNotFound = errors.New("budget not found")
-	ErrBudgetConflict = errors.New("a budget for this category already exists in this snapshot")
+	ErrBudgetNotFound  = errors.New("budget not found")
+	ErrBudgetConflict  = errors.New("a budget for this category already exists in this snapshot")
 	ErrBudgetForbidden = errors.New("you don't have access to this budget")
 )
 
@@ -79,11 +79,11 @@ func (s *BudgetService) List(ctx context.Context, requesterID, householdID strin
 }
 
 type CreateBudgetInput struct {
-	HouseholdID     string
-	Scope           string
-	CategoryID      *string
-	SnapshotID      *string // nil = current open
-	Amount          string
+	HouseholdID string
+	Scope       string
+	CategoryID  *string
+	SnapshotID  *string // nil = current open
+	Amount      string
 }
 
 func (s *BudgetService) Create(ctx context.Context, requesterID string, input CreateBudgetInput) (model.Budget, error) {

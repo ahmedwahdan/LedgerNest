@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	ErrCycleConfigNotFound  = errors.New("cycle config not found")
+	ErrCycleConfigNotFound   = errors.New("cycle config not found")
 	ErrCycleSnapshotNotFound = errors.New("cycle snapshot not found")
 )
 

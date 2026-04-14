@@ -13,15 +13,15 @@ import (
 )
 
 var (
-	ErrHouseholdNotFound    = errors.New("household not found")
-	ErrMemberNotFound       = errors.New("household member not found")
-	ErrAlreadyMember        = errors.New("user is already a member of this household")
-	ErrNotMember            = errors.New("user is not a member of this household")
-	ErrInsufficientRole     = errors.New("insufficient role for this action")
+	ErrHouseholdNotFound     = errors.New("household not found")
+	ErrMemberNotFound        = errors.New("household member not found")
+	ErrAlreadyMember         = errors.New("user is already a member of this household")
+	ErrNotMember             = errors.New("user is not a member of this household")
+	ErrInsufficientRole      = errors.New("insufficient role for this action")
 	ErrCannotRemoveLastOwner = errors.New("cannot remove the last owner of a household")
-	ErrInvitationNotFound   = errors.New("invitation not found")
-	ErrInvitationExpired    = errors.New("invitation has expired")
-	ErrInvitationConflict   = errors.New("a pending invitation for this email already exists")
+	ErrInvitationNotFound    = errors.New("invitation not found")
+	ErrInvitationExpired     = errors.New("invitation has expired")
+	ErrInvitationConflict    = errors.New("a pending invitation for this email already exists")
 )
 
 type householdStore interface {
@@ -45,10 +45,10 @@ type householdStore interface {
 }
 
 type HouseholdService struct {
-	households  householdStore
-	tokens      *auth.TokenService
-	inviteTTL   time.Duration
-	now         func() time.Time
+	households householdStore
+	tokens     *auth.TokenService
+	inviteTTL  time.Duration
+	now        func() time.Time
 }
 
 func NewHouseholdService(households householdStore, tokens *auth.TokenService, inviteTTL time.Duration) *HouseholdService {
