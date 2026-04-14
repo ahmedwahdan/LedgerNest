@@ -7,6 +7,7 @@ import type {
   CycleSnapshot,
   Expense,
   Household,
+  Notification,
 } from '@/lib/definitions'
 import { getCurrentUser } from '@/lib/current-user'
 
@@ -38,26 +39,35 @@ interface CycleState {
 async function getDashboardData() {
   const activeHousehold = await getActiveHousehold()
 
-  const [expensesRes, healthRes, householdRes, membersRes, invitationsRes, cycleRes] =
+  const [
+    expensesRes,
+    healthRes,
+    householdRes,
+    membersRes,
+    invitationsRes,
+    cycleRes,
+    notificationsRes,
+  ] =
     await Promise.allSettled([
-    apiFetch<{ expenses: Expense[] }>('/expenses?limit=5'),
-    activeHousehold
-      ? apiFetch<BudgetHealth>(
-          `/budgets/health?household_id=${encodeURIComponent(activeHousehold.id)}`,
-        )
-      : Promise.resolve(null),
-    activeHousehold
-      ? apiFetch<{ household: Household }>(`/households/${activeHousehold.id}`)
-      : Promise.resolve(null),
-    activeHousehold
-      ? apiFetch<{ members: HouseholdMember[] }>(`/households/${activeHousehold.id}/members`)
-      : Promise.resolve(null),
-    activeHousehold
-      ? apiFetch<{ invitations: Invitation[] }>(`/households/${activeHousehold.id}/invitations`)
-      : Promise.resolve(null),
-    activeHousehold
-      ? apiFetch<CycleState>(`/households/${activeHousehold.id}/cycle`)
-      : Promise.resolve(null),
+      apiFetch<{ expenses: Expense[] }>('/expenses?limit=5'),
+      activeHousehold
+        ? apiFetch<BudgetHealth>(
+            `/budgets/health?household_id=${encodeURIComponent(activeHousehold.id)}`,
+          )
+        : Promise.resolve(null),
+      activeHousehold
+        ? apiFetch<{ household: Household }>(`/households/${activeHousehold.id}`)
+        : Promise.resolve(null),
+      activeHousehold
+        ? apiFetch<{ members: HouseholdMember[] }>(`/households/${activeHousehold.id}/members`)
+        : Promise.resolve(null),
+      activeHousehold
+        ? apiFetch<{ invitations: Invitation[] }>(`/households/${activeHousehold.id}/invitations`)
+        : Promise.resolve(null),
+      activeHousehold
+        ? apiFetch<CycleState>(`/households/${activeHousehold.id}/cycle`)
+        : Promise.resolve(null),
+      apiFetch<{ notifications: Notification[] }>('/notifications?limit=5'),
     ])
 
   const expenses = expensesRes.status === 'fulfilled' ? expensesRes.value.expenses : []
@@ -73,13 +83,16 @@ async function getDashboardData() {
       : []
   const cycle =
     cycleRes.status === 'fulfilled' && cycleRes.value ? cycleRes.value : null
+  const notifications =
+    notificationsRes.status === 'fulfilled' ? notificationsRes.value.notifications : []
 
-  return { expenses, health, household, members, invitations, cycle }
+  return { expenses, health, household, members, invitations, cycle, notifications }
 }
 
 export default async function DashboardPage() {
   const user = await getCurrentUser()
-  const { expenses, health, household, members, invitations, cycle } = await getDashboardData()
+  const { expenses, health, household, members, invitations, cycle, notifications } =
+    await getDashboardData()
 
   return (
     <div className="shell-grid flex flex-1 flex-col overflow-auto">
@@ -113,44 +126,47 @@ export default async function DashboardPage() {
           <NoBudgetCard />
         )}
 
-        {/* Recent expenses */}
-        <section className="glass-panel rounded-[2rem] p-6 sm:p-8">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-medium">Recent expenses</h2>
-            <Link
-              href="/expenses"
-              className="text-sm text-[var(--accent)] underline underline-offset-2"
-            >
-              View all
-            </Link>
-          </div>
-
-          {expenses.length === 0 ? (
-            <div className="mt-6 rounded-[1.4rem] bg-[var(--surface-strong)] px-6 py-8 text-center text-sm text-muted">
-              No expenses yet.{' '}
+        <div className="grid gap-6 lg:grid-cols-[1.25fr_0.95fr]">
+          <section className="glass-panel rounded-[2rem] p-6 sm:p-8">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-medium">Recent expenses</h2>
               <Link href="/expenses" className="text-[var(--accent)] underline underline-offset-2">
-                Add your first one.
+                View all
               </Link>
             </div>
-          ) : (
-            <ul className="mt-5 space-y-2">
-              {expenses.map((e) => (
-                <li
-                  key={e.id}
-                  className="flex items-center justify-between rounded-[1.2rem] border border-[var(--line)] bg-white/65 px-4 py-3"
+
+            {expenses.length === 0 ? (
+              <div className="mt-6 rounded-[1.4rem] bg-[var(--surface-strong)] px-6 py-8 text-center text-sm text-muted">
+                No expenses yet.{' '}
+                <Link
+                  href="/expenses"
+                  className="text-[var(--accent)] underline underline-offset-2"
                 >
-                  <div>
-                    <p className="text-sm font-medium">{e.merchant}</p>
-                    <p className="mt-0.5 text-xs text-muted">{e.date}</p>
-                  </div>
-                  <p className="text-sm font-semibold">
-                    {e.currency} {e.amount}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+                  Add your first one.
+                </Link>
+              </div>
+            ) : (
+              <ul className="mt-5 space-y-2">
+                {expenses.map((e) => (
+                  <li
+                    key={e.id}
+                    className="flex items-center justify-between rounded-[1.2rem] border border-[var(--line)] bg-white/65 px-4 py-3"
+                  >
+                    <div>
+                      <p className="text-sm font-medium">{e.merchant}</p>
+                      <p className="mt-0.5 text-xs text-muted">{e.date}</p>
+                    </div>
+                    <p className="text-sm font-semibold">
+                      {e.currency} {e.amount}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
+          <RecentAlertsCard notifications={notifications} />
+        </div>
       </div>
     </div>
   )
@@ -352,6 +368,53 @@ function NoHouseholdCard() {
           Create a household
         </Link>
       </div>
+    </section>
+  )
+}
+
+function RecentAlertsCard({ notifications }: { notifications: Notification[] }) {
+  return (
+    <section className="glass-panel rounded-[2rem] p-6 sm:p-8">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm uppercase tracking-[0.28em] text-muted">Inbox</p>
+          <h2 className="display-font mt-1 text-2xl">Recent alerts</h2>
+        </div>
+      </div>
+
+      {notifications.length === 0 ? (
+        <div className="mt-5 rounded-[1.4rem] bg-[var(--surface-strong)] px-5 py-6 text-sm text-muted">
+          No alerts yet. Budget threshold warnings and household events will appear here.
+        </div>
+      ) : (
+        <ul className="mt-5 space-y-2">
+          {notifications.map((notification) => (
+            <li
+              key={notification.id}
+              className={`rounded-[1.2rem] border px-4 py-3 ${
+                notification.read_at
+                  ? 'border-[var(--line)] bg-white/65'
+                  : 'border-[rgba(15,118,110,0.18)] bg-[rgba(15,118,110,0.08)]'
+              }`}
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-sm font-medium">{notification.title}</p>
+                  <p className="mt-1 text-xs leading-5 text-muted">{notification.body}</p>
+                </div>
+                {!notification.read_at && (
+                  <span className="rounded-full bg-[var(--accent)] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-white">
+                    New
+                  </span>
+                )}
+              </div>
+              <p className="mt-2 text-[11px] uppercase tracking-[0.16em] text-muted">
+                {new Date(notification.created_at).toLocaleDateString()}
+              </p>
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   )
 }
