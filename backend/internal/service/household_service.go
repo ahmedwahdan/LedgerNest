@@ -22,6 +22,7 @@ var (
 	ErrInvitationNotFound    = errors.New("invitation not found")
 	ErrInvitationExpired     = errors.New("invitation has expired")
 	ErrInvitationConflict    = errors.New("a pending invitation for this email already exists")
+	ErrInvitationEmailMismatch = errors.New("invitation email does not match the authenticated user")
 )
 
 type householdStore interface {
@@ -44,16 +45,22 @@ type householdStore interface {
 	AcceptInvitation(ctx context.Context, invitationID, householdID, userID, role string) (model.HouseholdMember, error)
 }
 
+type householdUserStore interface {
+	FindByID(ctx context.Context, id string) (model.User, error)
+}
+
 type HouseholdService struct {
 	households householdStore
+	users      householdUserStore
 	tokens     *auth.TokenService
 	inviteTTL  time.Duration
 	now        func() time.Time
 }
 
-func NewHouseholdService(households householdStore, tokens *auth.TokenService, inviteTTL time.Duration) *HouseholdService {
+func NewHouseholdService(households householdStore, users householdUserStore, tokens *auth.TokenService, inviteTTL time.Duration) *HouseholdService {
 	return &HouseholdService{
 		households: households,
+		users:      users,
 		tokens:     tokens,
 		inviteTTL:  inviteTTL,
 		now:        time.Now,
@@ -270,6 +277,18 @@ func (s *HouseholdService) AcceptInvitation(ctx context.Context, userID, token s
 
 	if !inv.ExpiresAt.After(s.now()) {
 		return model.HouseholdMember{}, ErrInvitationExpired
+	}
+
+	user, err := s.users.FindByID(ctx, userID)
+	if err != nil {
+		if errors.Is(err, repository.ErrUserNotFound) {
+			return model.HouseholdMember{}, ErrInvitationNotFound
+		}
+		return model.HouseholdMember{}, err
+	}
+
+	if !strings.EqualFold(strings.TrimSpace(user.Email), strings.TrimSpace(inv.Email)) {
+		return model.HouseholdMember{}, ErrInvitationEmailMismatch
 	}
 
 	m, err := s.households.AcceptInvitation(ctx, inv.ID, inv.HouseholdID, userID, inv.Role)

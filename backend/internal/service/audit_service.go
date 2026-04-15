@@ -11,6 +11,7 @@ import (
 type auditWriter interface {
 	Write(ctx context.Context, params repository.WriteAuditParams) error
 	ListByEntity(ctx context.Context, entityType, entityID string) ([]model.AuditLogEntry, error)
+	ListActivity(ctx context.Context, f repository.ActivityFilters) ([]model.AuditLogEntry, error)
 }
 
 // AuditService writes audit log entries and retrieves history.
@@ -36,4 +37,8 @@ func (s *AuditService) Record(ctx context.Context, params repository.WriteAuditP
 
 func (s *AuditService) ListByEntity(ctx context.Context, entityType, entityID string) ([]model.AuditLogEntry, error) {
 	return s.log.ListByEntity(ctx, entityType, entityID)
+}
+
+func (s *AuditService) ListActivity(ctx context.Context, f repository.ActivityFilters) ([]model.AuditLogEntry, error) {
+	return s.log.ListActivity(ctx, f)
 }

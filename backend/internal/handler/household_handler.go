@@ -317,6 +317,8 @@ func writeHouseholdError(w http.ResponseWriter, err error) {
 		httpx.WriteError(w, http.StatusGone, "invitation has expired")
 	case errors.Is(err, service.ErrInvitationConflict):
 		httpx.WriteError(w, http.StatusConflict, "a pending invitation for this email already exists")
+	case errors.Is(err, service.ErrInvitationEmailMismatch):
+		httpx.WriteError(w, http.StatusForbidden, "this invitation was sent to a different email address")
 	default:
 		var errMsg string
 		if err != nil {

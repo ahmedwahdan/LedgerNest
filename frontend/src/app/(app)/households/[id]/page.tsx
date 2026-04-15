@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { apiFetch, ApiError } from '@/lib/api'
 import type { Household, CycleSnapshot, BudgetCycleConfig } from '@/lib/definitions'
+import { getCurrentUser } from '@/lib/current-user'
 import { MembersPanel } from './members-panel'
 import { InvitePanel } from './invite-panel'
 import { CyclePanel } from './cycle-panel'
@@ -64,7 +65,7 @@ export default async function HouseholdDetailPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  const data = await getData(id)
+  const [data, currentUser] = await Promise.all([getData(id), getCurrentUser()])
   if (!data) notFound()
 
   const { household, members, invitations, cycle } = data
@@ -86,7 +87,7 @@ export default async function HouseholdDetailPage({
         </header>
 
         {/* Members */}
-        <MembersPanel householdId={id} members={members} />
+        <MembersPanel householdId={id} members={members} currentUserId={currentUser?.id ?? ''} />
 
         {/* Pending invitations */}
         {invitations.length > 0 && (

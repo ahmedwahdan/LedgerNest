@@ -1,7 +1,8 @@
 import 'server-only'
-import { clearTokens, getAccessToken, getRefreshToken, setTokens } from './session'
+import { getAccessToken } from './session'
 
 const BACKEND_URL = process.env.BACKEND_URL ?? 'http://localhost:8080'
+const NEXT_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
 
 export class ApiError extends Error {
   constructor(
@@ -75,37 +76,18 @@ function shouldRetryWithRefresh(path: string) {
     !path.startsWith('/auth/logout')
 }
 
+// Delegates to a Route Handler because only Route Handlers (not Server Components)
+// are allowed to write cookies in Next.js.
 async function refreshSession(): Promise<string | null> {
-  const refreshToken = await getRefreshToken()
-  if (!refreshToken) {
-    return null
-  }
-
   try {
-    const res = await fetch(`${BACKEND_URL}/auth/refresh`, {
+    const res = await fetch(`${NEXT_URL}/api/auth/refresh`, {
       method: 'POST',
       cache: 'no-store',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ refresh_token: refreshToken }),
     })
-
-    if (!res.ok) {
-      await clearTokens()
-      return null
-    }
-
-    const data = await res.json() as {
-      access_token: string
-      refresh_token: string
-      expires_at: string
-    }
-
-    await setTokens(data.access_token, data.refresh_token, data.expires_at)
+    if (!res.ok) return null
+    const data = await res.json() as { access_token: string }
     return data.access_token
   } catch {
-    await clearTokens()
     return null
   }
 }

@@ -202,22 +202,49 @@ func (r *BudgetRepository) Delete(ctx context.Context, budgetID string) error {
 // GetHealthData returns budgets for a snapshot joined with the amount spent during
 // the snapshot period. It handles both category-specific and overall-cap (NULL category) budgets.
 func (r *BudgetRepository) GetHealthData(ctx context.Context, snapshotID, scope string, userID, householdID *string) ([]BudgetHealthRow, error) {
+	// Uses a recursive CTE so that a budget set at a parent category (e.g. "Food & Dining")
+	// automatically aggregates spending from all descendant categories (Groceries, Restaurants, …).
 	const query = `
-		WITH snap AS (
+		WITH RECURSIVE snap AS (
 			SELECT cycle_start, cycle_end FROM cycle_snapshots WHERE id = $1
 		),
-		spent_by_category AS (
-			SELECT e.category_id, SUM(e.amount) AS total
-			FROM expenses e, snap
+		budget_roots AS (
+			SELECT id AS budget_id, category_id AS cat_id
+			FROM budgets
+			WHERE cycle_snapshot_id = $1
+			  AND scope = $2::budget_scope
+			  AND ($3::uuid IS NULL OR user_id = $3)
+			  AND ($4::uuid IS NULL OR household_id = $4)
+			  AND category_id IS NOT NULL
+		),
+		cat_tree(budget_id, cat_id) AS (
+			SELECT budget_id, cat_id FROM budget_roots
+			UNION ALL
+			SELECT ct.budget_id, c.id
+			FROM cat_tree ct
+			JOIN categories c ON c.parent_id = ct.cat_id
+		),
+		spent_by_budget AS (
+			SELECT ct.budget_id, SUM(e.amount) AS total
+			FROM cat_tree ct
+			JOIN expenses e ON e.category_id = ct.cat_id
+			CROSS JOIN snap
 			WHERE e.scope = $2::budget_scope
 			  AND ($3::uuid IS NULL OR e.user_id = $3)
 			  AND ($4::uuid IS NULL OR e.household_id = $4)
 			  AND e.date BETWEEN snap.cycle_start AND snap.cycle_end
 			  AND e.is_deleted = FALSE
-			GROUP BY e.category_id
+			GROUP BY ct.budget_id
 		),
 		total_spent AS (
-			SELECT SUM(total) AS grand_total FROM spent_by_category
+			SELECT COALESCE(SUM(e.amount), 0) AS grand_total
+			FROM expenses e
+			CROSS JOIN snap
+			WHERE e.scope = $2::budget_scope
+			  AND ($3::uuid IS NULL OR e.user_id = $3)
+			  AND ($4::uuid IS NULL OR e.household_id = $4)
+			  AND e.date BETWEEN snap.cycle_start AND snap.cycle_end
+			  AND e.is_deleted = FALSE
 		)
 		SELECT
 			b.id,
@@ -228,12 +255,13 @@ func (r *BudgetRepository) GetHealthData(ctx context.Context, snapshotID, scope 
 			COALESCE(
 				CASE
 					WHEN b.category_id IS NULL THEN (SELECT grand_total FROM total_spent)
-					ELSE (SELECT total FROM spent_by_category WHERE category_id = b.category_id)
+					ELSE sbb.total
 				END,
 				0
 			)::text AS spent
 		FROM budgets b
 		LEFT JOIN categories c ON c.id = b.category_id
+		LEFT JOIN spent_by_budget sbb ON sbb.budget_id = b.id
 		WHERE b.cycle_snapshot_id = $1
 		  AND b.scope = $2::budget_scope
 		  AND ($3::uuid IS NULL OR b.user_id = $3)

@@ -120,6 +120,32 @@ export interface Notification {
   created_at: string
 }
 
+export interface SpendingSummary {
+  total: string
+  count: number
+  average: string
+}
+
+export interface SpendingByCategory {
+  category_id?: string
+  category_name: string
+  total: string
+  count: number
+  pct_of_total: number
+}
+
+export interface MonthlyTrend {
+  month: string
+  total: string
+  count: number
+}
+
+export interface TopMerchant {
+  merchant: string
+  total: string
+  count: number
+}
+
 export type ActionState =
   | { success: true; message?: string }
   | { success: false; error: string }

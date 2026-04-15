@@ -98,6 +98,11 @@ func (s *BudgetService) Create(ctx context.Context, requesterID string, input Cr
 	if err := s.requireMember(ctx, input.HouseholdID, requesterID); err != nil {
 		return model.Budget{}, err
 	}
+	if input.Scope == "household" {
+		if err := s.requireRole(ctx, input.HouseholdID, requesterID, "owner", "editor"); err != nil {
+			return model.Budget{}, err
+		}
+	}
 
 	sid, err := s.resolveSnapshotID(ctx, input.HouseholdID, input.SnapshotID)
 	if err != nil {
@@ -149,6 +154,11 @@ func (s *BudgetService) Update(ctx context.Context, requesterID, householdID, bu
 	if err := s.checkBudgetAccess(existing, requesterID, householdID); err != nil {
 		return model.Budget{}, err
 	}
+	if existing.Scope == "household" {
+		if err := s.requireRole(ctx, householdID, requesterID, "owner", "editor"); err != nil {
+			return model.Budget{}, err
+		}
+	}
 
 	b, err := s.budgets.Update(ctx, repository.UpdateBudgetParams{
 		BudgetID: budgetID,
@@ -179,6 +189,11 @@ func (s *BudgetService) Delete(ctx context.Context, requesterID, householdID, bu
 
 	if err := s.checkBudgetAccess(existing, requesterID, householdID); err != nil {
 		return err
+	}
+	if existing.Scope == "household" {
+		if err := s.requireRole(ctx, householdID, requesterID, "owner", "editor"); err != nil {
+			return err
+		}
 	}
 
 	return s.budgets.Delete(ctx, budgetID)
@@ -245,7 +260,17 @@ func (s *BudgetService) GetHealth(ctx context.Context, requesterID, householdID 
 
 func (s *BudgetService) resolveSnapshotID(ctx context.Context, householdID string, snapshotID *string) (string, error) {
 	if snapshotID != nil && *snapshotID != "" {
-		return *snapshotID, nil
+		snapshot, err := s.cycles.GetSnapshotByID(ctx, *snapshotID)
+		if err != nil {
+			if errors.Is(err, repository.ErrCycleSnapshotNotFound) {
+				return "", ErrCycleSnapshotNotFound
+			}
+			return "", err
+		}
+		if snapshot.HouseholdID != householdID {
+			return "", ErrCycleSnapshotNotFound
+		}
+		return snapshot.ID, nil
 	}
 
 	snap, err := s.cycles.GetOpenSnapshot(ctx, householdID)
@@ -268,6 +293,24 @@ func (s *BudgetService) requireMember(ctx context.Context, householdID, userID s
 		return err
 	}
 	return nil
+}
+
+func (s *BudgetService) requireRole(ctx context.Context, householdID, userID string, roles ...string) error {
+	member, err := s.households.GetMembership(ctx, householdID, userID)
+	if err != nil {
+		if errors.Is(err, repository.ErrMemberNotFound) {
+			return ErrNotMember
+		}
+		return err
+	}
+
+	for _, role := range roles {
+		if member.Role == role {
+			return nil
+		}
+	}
+
+	return ErrInsufficientRole
 }
 
 func (s *BudgetService) checkBudgetAccess(b model.Budget, requesterID, householdID string) error {
