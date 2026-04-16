@@ -159,4 +159,5 @@ func (s *budgetHouseholdStoreStub) AcceptInvitation(context.Context, string, str
 
 type thresholdCheckerStub struct{}
 
-func (s *thresholdCheckerStub) CheckBudgetThresholds(context.Context, string, []model.BudgetHealthItem, string) {}
+func (s *thresholdCheckerStub) CheckBudgetThresholds(context.Context, string, []model.BudgetHealthItem, string) {
+}

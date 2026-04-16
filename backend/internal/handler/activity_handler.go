@@ -33,8 +33,8 @@ func (h *ActivityHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	f := repository.ActivityFilters{
 		UserID: ptr(claims.UserID),
-		Page:  queryInt(r, "page", 1),
-		Limit: queryInt(r, "limit", 20),
+		Page:   queryInt(r, "page", 1),
+		Limit:  queryInt(r, "limit", 20),
 	}
 
 	if uid := r.URL.Query().Get("user_id"); uid != "" {

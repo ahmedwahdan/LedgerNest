@@ -55,9 +55,9 @@ func NewAnalyticsRepository(pool *pgxpool.Pool) *AnalyticsRepository {
 }
 
 // scopeClause returns the WHERE fragment and args for scoping to user or household.
-func scopeClause(f AnalyticsFilters, argOffset int) (string, []any) {
-	args := []any{f.From, f.To}
-	clause := fmt.Sprintf("date >= $%d AND date <= $%d", argOffset, argOffset+1)
+func scopeClause(f AnalyticsFilters, argOffset int) (clause string, args []any) {
+	args = []any{f.From, f.To}
+	clause = fmt.Sprintf("date >= $%d AND date <= $%d", argOffset, argOffset+1)
 	argOffset += 2
 
 	if f.UserID != nil {

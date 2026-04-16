@@ -120,11 +120,10 @@ func (s *AnalyticsService) GetTopMerchants(ctx context.Context, input AnalyticsI
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
-func parseDateRange(from, to string) (time.Time, time.Time, error) {
+func parseDateRange(from, to string) (start, end time.Time, err error) {
 	now := time.Now()
 
 	var f, t time.Time
-	var err error
 
 	if from == "" {
 		f = time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
