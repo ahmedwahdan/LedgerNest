@@ -1,13 +1,16 @@
 import { apiFetch } from '@/lib/api'
 import { getActiveHousehold } from '@/lib/household-context'
-import type { Expense, Category } from '@/lib/definitions'
+import type {
+  SpendingSummary,
+  SpendingByCategory,
+  TopMerchant,
+} from '@/lib/definitions'
 import { SpendingCharts } from './spending-charts'
 
 interface PageProps {
   searchParams: Promise<{ from?: string; to?: string }>
 }
 
-// Compute current month bounds
 function currentMonthBounds() {
   const now = new Date()
   const from = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
@@ -16,19 +19,31 @@ function currentMonthBounds() {
   return { from, to }
 }
 
-async function getData(from: string, to: string) {
+async function getAnalytics(from: string, to: string) {
   const activeHousehold = await getActiveHousehold()
-  const qs = new URLSearchParams({ from, to, limit: '200' })
-  const [expensesRes, categoriesRes] = await Promise.allSettled([
-    apiFetch<{ expenses: Expense[] }>(`/expenses?${qs}`),
-    apiFetch<{ categories: Category[] }>(
-      activeHousehold ? `/categories?household_id=${encodeURIComponent(activeHousehold.id)}` : '/categories',
+  const scope = activeHousehold ? 'household' : 'personal'
+  const base: Record<string, string> = { from, to, scope }
+  if (activeHousehold) base.household_id = activeHousehold.id
+
+  const spendingQs = new URLSearchParams(base)
+  const merchantsQs = new URLSearchParams({ ...base, limit: '10' })
+
+  const [spendingRes, merchantsRes] = await Promise.allSettled([
+    apiFetch<{ summary: SpendingSummary; by_category: SpendingByCategory[] }>(
+      `/analytics/spending?${spendingQs}`,
     ),
+    apiFetch<{ merchants: TopMerchant[] }>(`/analytics/merchants?${merchantsQs}`),
   ])
 
   return {
-    expenses: expensesRes.status === 'fulfilled' ? expensesRes.value.expenses : [],
-    categories: categoriesRes.status === 'fulfilled' ? categoriesRes.value.categories : [],
+    summary:
+      spendingRes.status === 'fulfilled'
+        ? spendingRes.value.summary
+        : { total: '0', count: 0, average: '0' },
+    byCategory:
+      spendingRes.status === 'fulfilled' ? spendingRes.value.by_category : [],
+    merchants:
+      merchantsRes.status === 'fulfilled' ? merchantsRes.value.merchants : [],
   }
 }
 
@@ -38,7 +53,7 @@ export default async function AnalyticsPage({ searchParams }: PageProps) {
   const from = params.from ?? defaultBounds.from
   const to = params.to ?? defaultBounds.to
 
-  const { expenses, categories } = await getData(from, to)
+  const { summary, byCategory, merchants } = await getAnalytics(from, to)
 
   return (
     <div className="shell-grid flex flex-1 flex-col overflow-auto">
@@ -49,7 +64,6 @@ export default async function AnalyticsPage({ searchParams }: PageProps) {
             <h1 className="display-font mt-1 text-4xl">Analytics</h1>
           </div>
 
-          {/* Date range picker */}
           <form className="flex flex-wrap gap-2">
             <input
               name="from"
@@ -72,7 +86,13 @@ export default async function AnalyticsPage({ searchParams }: PageProps) {
           </form>
         </header>
 
-        <SpendingCharts expenses={expenses} categories={categories} from={from} to={to} />
+        <SpendingCharts
+          summary={summary}
+          byCategory={byCategory}
+          merchants={merchants}
+          from={from}
+          to={to}
+        />
       </div>
     </div>
   )

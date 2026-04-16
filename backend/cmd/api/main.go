@@ -58,10 +58,12 @@ func run() error {
 		cfg.JWTRefreshTTL,
 	)
 	expenseService := service.NewExpenseService(expenseRepository, auditService)
-	categoryService := service.NewCategoryService(categoryRepository)
-	householdService := service.NewHouseholdService(householdRepository, tokenService, cfg.InviteTTL)
+	categoryService := service.NewCategoryService(categoryRepository, householdRepository)
+	householdService := service.NewHouseholdService(householdRepository, userRepository, tokenService, cfg.InviteTTL)
 	budgetCycleService := service.NewBudgetCycleService(budgetCycleRepository, householdRepository)
 	budgetService := service.NewBudgetService(budgetRepository, budgetCycleRepository, householdRepository, notificationService)
+	analyticsRepository := repository.NewAnalyticsRepository(pool)
+	analyticsService := service.NewAnalyticsService(analyticsRepository, householdRepository)
 	authHandler := handler.NewAuthHandler(authService)
 	expenseHandler := handler.NewExpenseHandler(expenseService, auditService)
 	categoryHandler := handler.NewCategoryHandler(categoryService)
@@ -69,6 +71,8 @@ func run() error {
 	budgetCycleHandler := handler.NewBudgetCycleHandler(budgetCycleService)
 	budgetHandler := handler.NewBudgetHandler(budgetService)
 	notificationHandler := handler.NewNotificationHandler(notificationService)
+	analyticsHandler := handler.NewAnalyticsHandler(analyticsService)
+	activityHandler := handler.NewActivityHandler(auditService)
 	authMiddleware := middleware.NewAuthMiddleware(tokenService)
 
 	mux := http.NewServeMux()
@@ -123,6 +127,10 @@ func run() error {
 	mux.Handle("GET /notifications", authMiddleware.RequireAuth(http.HandlerFunc(notificationHandler.List)))
 	mux.Handle("PUT /notifications/{id}/read", authMiddleware.RequireAuth(http.HandlerFunc(notificationHandler.MarkRead)))
 	mux.Handle("PUT /notifications/read-all", authMiddleware.RequireAuth(http.HandlerFunc(notificationHandler.MarkAllRead)))
+	mux.Handle("GET /analytics/spending", authMiddleware.RequireAuth(http.HandlerFunc(analyticsHandler.Spending)))
+	mux.Handle("GET /analytics/trends", authMiddleware.RequireAuth(http.HandlerFunc(analyticsHandler.Trends)))
+	mux.Handle("GET /analytics/merchants", authMiddleware.RequireAuth(http.HandlerFunc(analyticsHandler.TopMerchants)))
+	mux.Handle("GET /activity", authMiddleware.RequireAuth(http.HandlerFunc(activityHandler.List)))
 
 	server := &http.Server{
 		Addr:              ":" + cfg.Port,
