@@ -26,6 +26,7 @@ type sessionStore interface {
 	Create(ctx context.Context, userID, refreshTokenHash string, expiresAt time.Time) error
 	FindByRefreshTokenHash(ctx context.Context, refreshTokenHash string) (repository.Session, error)
 	Rotate(ctx context.Context, currentRefreshTokenHash, nextRefreshTokenHash string, expiresAt time.Time) error
+	DeleteByRefreshTokenHash(ctx context.Context, refreshTokenHash string) error
 }
 
 // AuthService owns authentication-related business logic.
@@ -165,6 +166,19 @@ func (s *AuthService) Refresh(ctx context.Context, refreshToken string) (LoginRe
 		TokenType:    "Bearer",
 		ExpiresAt:    accessExpiresAt,
 	}, nil
+}
+
+func (s *AuthService) Logout(ctx context.Context, refreshToken string) error {
+	hash := auth.HashToken(strings.TrimSpace(refreshToken))
+
+	if err := s.sessions.DeleteByRefreshTokenHash(ctx, hash); err != nil {
+		if errors.Is(err, repository.ErrSessionNotFound) {
+			return ErrInvalidCredentials
+		}
+		return err
+	}
+
+	return nil
 }
 
 func (s *AuthService) CurrentUser(ctx context.Context, userID string) (model.User, error) {

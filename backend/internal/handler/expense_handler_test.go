@@ -19,7 +19,7 @@ func TestExpenseHandlerCreatePersonal(t *testing.T) {
 
 	handler := NewExpenseHandler(&stubExpenseService{
 		createdExpense: model.Expense{ID: "expense-1", Merchant: "Market"},
-	})
+	}, &stubAuditService{})
 
 	request := httptest.NewRequest(http.MethodPost, "/expenses", bytes.NewBufferString(`{"amount":"12.50","currency":"USD","merchant":"Market","payment_method":"card","date":"2026-04-13"}`))
 	request = request.WithContext(auth.ContextWithAccessTokenClaims(request.Context(), auth.AccessTokenClaims{UserID: "user-1"}))
@@ -48,7 +48,7 @@ func TestExpenseHandlerListPersonal(t *testing.T) {
 	stub := &stubExpenseService{
 		listExpenses: []model.Expense{{ID: "expense-1"}, {ID: "expense-2"}},
 	}
-	handler := NewExpenseHandler(stub)
+	handler := NewExpenseHandler(stub, &stubAuditService{})
 
 	request := httptest.NewRequest(http.MethodGet, "/expenses?from=2026-04-01&to=2026-04-30&merchant=market&category_id=category-1", http.NoBody)
 	request = request.WithContext(auth.ContextWithAccessTokenClaims(request.Context(), auth.AccessTokenClaims{UserID: "user-1"}))
@@ -69,7 +69,7 @@ func TestExpenseHandlerGetPersonal(t *testing.T) {
 
 	handler := NewExpenseHandler(&stubExpenseService{
 		getExpense: model.Expense{ID: "expense-1"},
-	})
+	}, &stubAuditService{})
 
 	request := httptest.NewRequest(http.MethodGet, "/expenses/expense-1", http.NoBody)
 	request.SetPathValue("id", "expense-1")
@@ -88,7 +88,7 @@ func TestExpenseHandlerUpdatePersonal(t *testing.T) {
 
 	handler := NewExpenseHandler(&stubExpenseService{
 		updatedExpense: model.Expense{ID: "expense-1", Merchant: "Updated"},
-	})
+	}, &stubAuditService{})
 
 	request := httptest.NewRequest(http.MethodPut, "/expenses/expense-1", bytes.NewBufferString(`{"amount":"22.00","currency":"USD","merchant":"Updated","payment_method":"card","date":"2026-04-13"}`))
 	request.SetPathValue("id", "expense-1")
@@ -105,7 +105,7 @@ func TestExpenseHandlerUpdatePersonal(t *testing.T) {
 func TestExpenseHandlerDeletePersonal(t *testing.T) {
 	t.Parallel()
 
-	handler := NewExpenseHandler(&stubExpenseService{})
+	handler := NewExpenseHandler(&stubExpenseService{}, &stubAuditService{})
 
 	request := httptest.NewRequest(http.MethodDelete, "/expenses/expense-1", http.NoBody)
 	request.SetPathValue("id", "expense-1")
@@ -122,7 +122,7 @@ func TestExpenseHandlerDeletePersonal(t *testing.T) {
 func TestExpenseHandlerUpdatePersonalNotFound(t *testing.T) {
 	t.Parallel()
 
-	handler := NewExpenseHandler(&stubExpenseService{err: repository.ErrExpenseNotFound})
+	handler := NewExpenseHandler(&stubExpenseService{err: repository.ErrExpenseNotFound}, &stubAuditService{})
 
 	request := httptest.NewRequest(http.MethodPut, "/expenses/missing", bytes.NewBufferString(`{"amount":"22.00","currency":"USD","merchant":"Updated","payment_method":"card","date":"2026-04-13"}`))
 	request.SetPathValue("id", "missing")
@@ -180,4 +180,17 @@ func (s *stubExpenseService) DeletePersonal(_ context.Context, expenseID, userID
 	s.deletedExpenseID = expenseID
 	s.deletedUserID = userID
 	return s.err
+}
+
+func (s *stubExpenseService) RestorePersonal(context.Context, string, string) (model.Expense, error) {
+	if s.err != nil {
+		return model.Expense{}, s.err
+	}
+	return s.getExpense, nil
+}
+
+type stubAuditService struct{}
+
+func (s *stubAuditService) ListByEntity(context.Context, string, string) ([]model.AuditLogEntry, error) {
+	return nil, nil
 }

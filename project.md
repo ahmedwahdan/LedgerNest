@@ -2,16 +2,21 @@
 
 ## Current Implementation Progress
 
-Implemented in the backend right now:
-- Auth: `POST /auth/register`, `POST /auth/login`, `POST /auth/refresh`, `GET /auth/me`
-- Auth infrastructure: bearer-token middleware, access-token verification, persisted refresh-token sessions
-- Personal expenses: `GET /expenses`, `GET /expenses/:id`, `POST /expenses`, `PUT /expenses/:id`, `DELETE /expenses/:id`
-- Expense deletion is currently soft-delete based
+**Phase 1 backend complete.** All Phase 3 (frontend) work is next.
+
+Implemented:
+- Auth: register, login, logout, refresh, `GET /auth/me`; bearer-token middleware + refresh-token sessions
+- Categories: system seed (11 top-level + 27 subcategories via migration 000002), full CRUD
+- Households: create/get/update/delete, member management (roles: owner/editor/viewer), invitations (create/list/revoke/accept), leave
+- Budget cycles: `PUT|GET /households/:id/cycle` (start_day config, lazy snapshot creation), `GET .../cycle/snapshots`
+- Budgets: full CRUD, `GET /budgets/health` (per-category + overall cap, pct_used, remaining)
+- Personal expenses: full CRUD, soft-delete + restore, pagination (limit/offset), filters (from/to/merchant/category_id), `GET /expenses/:id/history`
+- Audit log: best-effort recording of create/update/delete/restore for expenses; `ListByEntity` used by history endpoint
 
 Not implemented yet:
-- Logout, email verification, forgot/reset password
-- Household, budgets, categories, analytics, notifications
-- Expense restore/history endpoints, pagination, and richer expense filtering
+- Email verification, forgot/reset password
+- Analytics, notifications, CSV export
+- Frontend (Phase 3)
 
 ## 1. Authentication & User Management
 
@@ -235,7 +240,7 @@ notifications (
 Auth:
   POST   /auth/register                 [implemented]
   POST   /auth/login                    [implemented]
-  POST   /auth/logout
+  POST   /auth/logout                   [implemented]
   POST   /auth/refresh                  [implemented]
   POST   /auth/verify-email
   POST   /auth/forgot-password
@@ -247,44 +252,45 @@ Profile:
   DELETE /me
 
 Households:
-  POST   /households
-  GET    /households/:id
-  PUT    /households/:id
-  DELETE /households/:id
-  POST   /households/:id/leave
-  GET    /households/:id/members
-  PUT    /households/:id/members/:userId/role
-  DELETE /households/:id/members/:userId
-  POST   /households/:id/invitations
-  GET    /households/:id/invitations
-  DELETE /households/:id/invitations/:invId
+  POST   /households                    [implemented]
+  GET    /households/:id                [implemented]
+  PUT    /households/:id                [implemented]
+  DELETE /households/:id                [implemented]
+  POST   /households/:id/leave          [implemented]
+  GET    /households/:id/members        [implemented]
+  PUT    /households/:id/members/:userId/role  [implemented]
+  DELETE /households/:id/members/:userId       [implemented]
+  POST   /households/:id/invitations    [implemented]
+  GET    /households/:id/invitations    [implemented]
+  DELETE /households/:id/invitations/:invId    [implemented]
+  POST   /invitations/accept            [implemented]
 
 Budget Cycles:
-  GET    /households/:id/cycle
-  PUT    /households/:id/cycle
-  GET    /households/:id/cycle/snapshots
+  GET    /households/:id/cycle          [implemented]
+  PUT    /households/:id/cycle          [implemented]
+  GET    /households/:id/cycle/snapshots [implemented]
 
 Categories:
-  GET    /categories                     (system + household custom)
-  POST   /categories
-  PUT    /categories/:id
-  DELETE /categories/:id
+  GET    /categories                    [implemented] (system + household custom)
+  POST   /categories                    [implemented]
+  PUT    /categories/:id                [implemented]
+  DELETE /categories/:id                [implemented]
 
 Budgets:
-  GET    /budgets                        (?snapshot_id=, ?scope=)
-  POST   /budgets
-  PUT    /budgets/:id
-  DELETE /budgets/:id
-  GET    /budgets/health                 (current cycle health summary)
+  GET    /budgets                       [implemented] (?snapshot_id=, ?scope=)
+  POST   /budgets                       [implemented]
+  PUT    /budgets/:id                   [implemented]
+  DELETE /budgets/:id                   [implemented]
+  GET    /budgets/health                [implemented] (current cycle health summary)
 
 Expenses:
-  GET    /expenses                       [implemented: personal scope only, supports from/to/merchant/category_id filters]
-  POST   /expenses                       [implemented: personal scope only]
-  GET    /expenses/:id                   [implemented: personal scope only]
-  PUT    /expenses/:id                   [implemented: personal scope only]
-  DELETE /expenses/:id                   [implemented: personal scope only]
-  POST   /expenses/:id/restore
-  GET    /expenses/:id/history
+  GET    /expenses                      [implemented] (personal scope; from/to/merchant/category_id/limit/offset)
+  POST   /expenses                      [implemented] (personal scope)
+  GET    /expenses/:id                  [implemented] (personal scope)
+  PUT    /expenses/:id                  [implemented] (personal scope)
+  DELETE /expenses/:id                  [implemented] (soft-delete)
+  POST   /expenses/:id/restore          [implemented]
+  GET    /expenses/:id/history          [implemented]
 
 Activity:
   GET    /activity                       (?from=, ?to=, ?user_id=, ?entity_type=, ?page=, ?limit=)
@@ -326,15 +332,13 @@ The web app is built mobile-first and responsive. It serves as the primary inter
 - [x] Go project setup: module, folder structure, config, middleware, error handling
 - [x] Database schema + migrations (golang-migrate)
 - [ ] sqlc setup + query definitions
-- [ ] Auth: register, login, logout, refresh, email verification, password reset
-  Current status: register, login, refresh, and authenticated user lookup are implemented; logout and recovery/verification flows are still missing.
-- [ ] Household: create, settings, invite, manage members and roles
-- [ ] Budget cycle config + snapshot generation (auto-create on cycle config)
-- [ ] Seed default category tree
-- [ ] CRUD: categories, expenses (with soft-delete + restore), budgets
-  Current status: personal expense create/get/list/update/delete is implemented; basic list filters are implemented for `from`, `to`, `merchant`, and `category_id`. Restore, history, pagination, categories, and budgets are still missing.
-- [ ] Budget health calculations (spent vs. remaining per category and overall)
-- [ ] Audit log middleware (auto-captures create/update/delete on key entities)
+- [x] Auth: register, login, logout, refresh (`GET /auth/me`); email verification + password reset deferred post-MVP
+- [x] Household: create, settings, invite, manage members and roles
+- [x] Budget cycle config + snapshot generation (lazy creation on GET /cycle)
+- [x] Seed default category tree (migration 000002: 11 top-level + 27 subcategories)
+- [x] CRUD: categories, personal expenses (soft-delete + restore + history + pagination), budgets
+- [x] Budget health calculations (spent vs. remaining per category and overall cap)
+- [x] Audit log: best-effort recording on expense mutations; history endpoint
 - [ ] API tests for all endpoints
 
 ### Phase 2 — Analytics & Notifications Backend
@@ -344,18 +348,22 @@ The web app is built mobile-first and responsive. It serves as the primary inter
 - [ ] Notification read/unread endpoints
 
 ### Phase 3 — Web Frontend
-- [ ] Auth pages: login, register, forgot/reset password, email verification
-- [ ] Onboarding wizard: household setup, budget cycle, first budgets
-- [ ] Dashboard: budget bars, recent expenses, spending chart, activity feed
-- [ ] Expense entry + edit form (with category picker, merchant autocomplete)
-- [ ] Expense list with filters (date, category, scope)
-- [ ] Expense history view (audit trail per entry)
-- [ ] Budget management: per-category setup, overall cap, cycle config
-- [ ] Analytics pages: category breakdown, trends, merchant ranking
-- [ ] Household management: members, invitations, roles
+- [x] Auth pages: login (wired to API + httpOnly cookie session), register
+- [x] Route protection via proxy.ts (redirect to /login if no access_token cookie)
+- [x] App shell: sidebar navigation (dashboard, expenses, budgets), logout
+- [x] Dashboard: budget health bars (pct_used, remaining, color-coded), recent expenses
+- [x] Expense entry form (amount, currency, merchant, date, payment method, category, notes)
+- [x] Expense list with filters (from/to date, merchant search)
+- [x] Expense detail: inline edit, delete (soft), restore, audit history timeline
+- [x] Budget management: health view (overall cap + per-category bars), add/remove budgets
+- [x] Onboarding wizard: household setup (step 1) → budget cycle (step 2) → first budget (step 3)
+- [x] Household management: create, view, members with role picker, invite by email, revoke invitations, leave/delete, cycle config inline
+- [x] Analytics: spending by category (horizontal bars, % of total), top merchants, summary stats (total, count, avg), date range picker
+- [x] CSV export: client-side download from analytics page, filtered by current date range
+- [x] Dark mode: full CSS variable overrides via prefers-color-scheme; shimmer skeleton loader utility
+- [x] Mobile-responsive: bottom navigation bar on mobile (lg:hidden), extra bottom padding in app shell
 - [ ] Notifications panel
-- [ ] CSV export
-- [ ] Dark mode + mobile-responsive polish throughout
+- [ ] Email verification + forgot/reset password flows
 
 ---
 

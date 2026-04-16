@@ -13,6 +13,7 @@ type Config struct {
 	JWTSecret     string
 	JWTAccessTTL  time.Duration
 	JWTRefreshTTL time.Duration
+	InviteTTL     time.Duration
 }
 
 // Load reads configuration from the process environment.
@@ -27,12 +28,18 @@ func Load() (Config, error) {
 		return Config{}, fmt.Errorf("parse JWT_REFRESH_TTL: %w", err)
 	}
 
+	inviteTTL, err := time.ParseDuration(getEnv("INVITE_TTL", "168h")) // 7 days
+	if err != nil {
+		return Config{}, fmt.Errorf("parse INVITE_TTL: %w", err)
+	}
+
 	cfg := Config{
 		Port:          getEnv("PORT", "8080"),
 		DatabaseURL:   os.Getenv("DATABASE_URL"),
 		JWTSecret:     os.Getenv("JWT_SECRET"),
 		JWTAccessTTL:  accessTTL,
 		JWTRefreshTTL: refreshTTL,
+		InviteTTL:     inviteTTL,
 	}
 
 	if cfg.DatabaseURL == "" {

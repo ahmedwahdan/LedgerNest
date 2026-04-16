@@ -21,6 +21,7 @@ type expenseStore interface {
 	GetPersonalByID(ctx context.Context, expenseID, userID string) (model.Expense, error)
 	UpdatePersonal(ctx context.Context, params repository.UpdateExpenseParams) (model.Expense, error)
 	DeletePersonal(ctx context.Context, expenseID, userID, deletedBy string) error
+	RestorePersonal(ctx context.Context, expenseID, userID, restoredBy string) (model.Expense, error)
 }
 
 type CreateExpenseInput struct {
@@ -40,14 +41,21 @@ type ListExpensesInput struct {
 	To         string
 	Merchant   string
 	CategoryID *string
+	Limit      int
+	Offset     int
+}
+
+type auditRecorder interface {
+	Record(ctx context.Context, params repository.WriteAuditParams)
 }
 
 type ExpenseService struct {
 	expenses expenseStore
+	audit    auditRecorder
 }
 
-func NewExpenseService(expenses expenseStore) *ExpenseService {
-	return &ExpenseService{expenses: expenses}
+func NewExpenseService(expenses expenseStore, audit auditRecorder) *ExpenseService {
+	return &ExpenseService{expenses: expenses, audit: audit}
 }
 
 func (s *ExpenseService) CreatePersonal(ctx context.Context, userID string, input CreateExpenseInput) (model.Expense, error) {
@@ -73,6 +81,14 @@ func (s *ExpenseService) CreatePersonal(ctx context.Context, userID string, inpu
 		return model.Expense{}, err
 	}
 
+	s.audit.Record(ctx, repository.WriteAuditParams{
+		UserID:     &userID,
+		Action:     "create",
+		EntityType: "expense",
+		EntityID:   expense.ID,
+		NewValues:  expense,
+	})
+
 	return expense, nil
 }
 
@@ -88,6 +104,8 @@ func (s *ExpenseService) ListPersonal(ctx context.Context, userID string, input 
 		To:         filters.To,
 		Merchant:   filters.Merchant,
 		CategoryID: filters.CategoryID,
+		Limit:      input.Limit,
+		Offset:     input.Offset,
 	})
 }
 
@@ -109,6 +127,8 @@ func (s *ExpenseService) UpdatePersonal(ctx context.Context, expenseID, userID s
 		return model.Expense{}, err
 	}
 
+	before, _ := s.expenses.GetPersonalByID(ctx, expenseID, userID)
+
 	expense, err := s.expenses.UpdatePersonal(ctx, repository.UpdateExpenseParams{
 		ExpenseID:          expenseID,
 		UserID:             userID,
@@ -127,6 +147,15 @@ func (s *ExpenseService) UpdatePersonal(ctx context.Context, expenseID, userID s
 		return model.Expense{}, err
 	}
 
+	s.audit.Record(ctx, repository.WriteAuditParams{
+		UserID:     &userID,
+		Action:     "update",
+		EntityType: "expense",
+		EntityID:   expense.ID,
+		OldValues:  before,
+		NewValues:  expense,
+	})
+
 	return expense, nil
 }
 
@@ -135,7 +164,39 @@ func (s *ExpenseService) DeletePersonal(ctx context.Context, expenseID, userID s
 		return fmt.Errorf("%w: expense id is required", ErrInvalidExpenseInput)
 	}
 
-	return s.expenses.DeletePersonal(ctx, expenseID, userID, userID)
+	if err := s.expenses.DeletePersonal(ctx, expenseID, userID, userID); err != nil {
+		return err
+	}
+
+	s.audit.Record(ctx, repository.WriteAuditParams{
+		UserID:     &userID,
+		Action:     "delete",
+		EntityType: "expense",
+		EntityID:   expenseID,
+	})
+
+	return nil
+}
+
+func (s *ExpenseService) RestorePersonal(ctx context.Context, expenseID, userID string) (model.Expense, error) {
+	if strings.TrimSpace(expenseID) == "" {
+		return model.Expense{}, fmt.Errorf("%w: expense id is required", ErrInvalidExpenseInput)
+	}
+
+	expense, err := s.expenses.RestorePersonal(ctx, expenseID, userID, userID)
+	if err != nil {
+		return model.Expense{}, err
+	}
+
+	s.audit.Record(ctx, repository.WriteAuditParams{
+		UserID:     &userID,
+		Action:     "restore",
+		EntityType: "expense",
+		EntityID:   expense.ID,
+		NewValues:  expense,
+	})
+
+	return expense, nil
 }
 
 func normalizeExpenseInput(input CreateExpenseInput) (CreateExpenseInput, error) {

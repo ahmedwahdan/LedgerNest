@@ -87,3 +87,17 @@ func (r *SessionRepository) Rotate(ctx context.Context, currentRefreshTokenHash,
 
 	return nil
 }
+
+func (r *SessionRepository) DeleteByRefreshTokenHash(ctx context.Context, refreshTokenHash string) error {
+	const query = `DELETE FROM user_sessions WHERE refresh_token_hash = $1`
+
+	tag, err := r.pool.Exec(ctx, query, refreshTokenHash)
+	if err != nil {
+		return fmt.Errorf("delete session: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrSessionNotFound
+	}
+
+	return nil
+}

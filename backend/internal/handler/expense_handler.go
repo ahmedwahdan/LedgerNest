@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strconv"
 
 	"github.com/ahmedwahdan/LedgerNest/backend/internal/auth"
 	"github.com/ahmedwahdan/LedgerNest/backend/internal/httpx"
@@ -19,10 +20,16 @@ type expenseService interface {
 	GetPersonal(ctx context.Context, expenseID, userID string) (model.Expense, error)
 	UpdatePersonal(ctx context.Context, expenseID, userID string, input service.CreateExpenseInput) (model.Expense, error)
 	DeletePersonal(ctx context.Context, expenseID, userID string) error
+	RestorePersonal(ctx context.Context, expenseID, userID string) (model.Expense, error)
+}
+
+type auditService interface {
+	ListByEntity(ctx context.Context, entityType, entityID string) ([]model.AuditLogEntry, error)
 }
 
 type ExpenseHandler struct {
 	expenses expenseService
+	audit    auditService
 }
 
 type createExpenseRequest struct {
@@ -37,8 +44,8 @@ type createExpenseRequest struct {
 	RecurrenceInterval *string `json:"recurrence_interval"`
 }
 
-func NewExpenseHandler(expenses expenseService) *ExpenseHandler {
-	return &ExpenseHandler{expenses: expenses}
+func NewExpenseHandler(expenses expenseService, audit auditService) *ExpenseHandler {
+	return &ExpenseHandler{expenses: expenses, audit: audit}
 }
 
 func (h *ExpenseHandler) CreatePersonal(w http.ResponseWriter, r *http.Request) {
@@ -90,6 +97,8 @@ func (h *ExpenseHandler) ListPersonal(w http.ResponseWriter, r *http.Request) {
 		To:         r.URL.Query().Get("to"),
 		Merchant:   r.URL.Query().Get("merchant"),
 		CategoryID: queryOptional(r, "category_id"),
+		Limit:      queryInt(r, "limit", 50),
+		Offset:     queryInt(r, "offset", 0),
 	})
 	if err != nil {
 		if errors.Is(err, service.ErrInvalidExpenseInput) {
@@ -193,6 +202,59 @@ func (h *ExpenseHandler) DeletePersonal(w http.ResponseWriter, r *http.Request) 
 	httpx.WriteJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
 }
 
+func (h *ExpenseHandler) RestorePersonal(w http.ResponseWriter, r *http.Request) {
+	claims, ok := auth.AccessTokenClaimsFromContext(r.Context())
+	if !ok {
+		httpx.WriteError(w, http.StatusUnauthorized, "missing authenticated user")
+		return
+	}
+
+	expense, err := h.expenses.RestorePersonal(r.Context(), r.PathValue("id"), claims.UserID)
+	if err != nil {
+		if errors.Is(err, service.ErrInvalidExpenseInput) {
+			httpx.WriteError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		if errors.Is(err, repository.ErrExpenseNotFound) {
+			httpx.WriteError(w, http.StatusNotFound, "expense not found or not deleted")
+			return
+		}
+		httpx.WriteError(w, http.StatusInternalServerError, "failed to restore expense")
+		return
+	}
+
+	httpx.WriteJSON(w, http.StatusOK, map[string]any{"expense": expense})
+}
+
+// GetHistory handles GET /expenses/{id}/history
+func (h *ExpenseHandler) GetHistory(w http.ResponseWriter, r *http.Request) {
+	claims, ok := auth.AccessTokenClaimsFromContext(r.Context())
+	if !ok {
+		httpx.WriteError(w, http.StatusUnauthorized, "missing authenticated user")
+		return
+	}
+
+	expenseID := r.PathValue("id")
+
+	// Verify ownership before exposing audit history.
+	if _, err := h.expenses.GetPersonal(r.Context(), expenseID, claims.UserID); err != nil {
+		if errors.Is(err, repository.ErrExpenseNotFound) {
+			httpx.WriteError(w, http.StatusNotFound, "expense not found")
+			return
+		}
+		httpx.WriteError(w, http.StatusInternalServerError, "failed to verify expense")
+		return
+	}
+
+	entries, err := h.audit.ListByEntity(r.Context(), "expense", expenseID)
+	if err != nil {
+		httpx.WriteError(w, http.StatusInternalServerError, "failed to load history")
+		return
+	}
+
+	httpx.WriteJSON(w, http.StatusOK, map[string]any{"history": entries})
+}
+
 func queryOptional(r *http.Request, key string) *string {
 	value := r.URL.Query().Get(key)
 	if value == "" {
@@ -200,4 +262,16 @@ func queryOptional(r *http.Request, key string) *string {
 	}
 
 	return &value
+}
+
+func queryInt(r *http.Request, key string, defaultVal int) int {
+	raw := r.URL.Query().Get(key)
+	if raw == "" {
+		return defaultVal
+	}
+	v, err := strconv.Atoi(raw)
+	if err != nil || v < 0 {
+		return defaultVal
+	}
+	return v
 }
