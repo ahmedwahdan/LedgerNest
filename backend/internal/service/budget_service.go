@@ -52,7 +52,7 @@ func NewBudgetService(budgets budgetStore, cycles snapshotGetter, households hou
 }
 
 // List returns budgets for a snapshot. snapshot_id defaults to the current open one.
-func (s *BudgetService) List(ctx context.Context, requesterID, householdID string, snapshotID *string, scope *string) ([]model.Budget, error) {
+func (s *BudgetService) List(ctx context.Context, requesterID, householdID string, snapshotID, scope *string) ([]model.Budget, error) {
 	if err := s.requireMember(ctx, householdID, requesterID); err != nil {
 		return nil, err
 	}

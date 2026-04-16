@@ -12,7 +12,7 @@ import (
 )
 
 type budgetService interface {
-	List(ctx context.Context, requesterID, householdID string, snapshotID *string, scope *string) ([]model.Budget, error)
+	List(ctx context.Context, requesterID, householdID string, snapshotID, scope *string) ([]model.Budget, error)
 	Create(ctx context.Context, requesterID string, input service.CreateBudgetInput) (model.Budget, error)
 	Update(ctx context.Context, requesterID, householdID, budgetID, amount string) (model.Budget, error)
 	Delete(ctx context.Context, requesterID, householdID, budgetID string) error
