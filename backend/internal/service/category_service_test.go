@@ -63,7 +63,7 @@ type categoryHouseholdStoreStub struct {
 	membershipErr error
 }
 
-func (s *categoryHouseholdStoreStub) Create(context.Context, name, createdByUserID string) (model.Household, error) {
+func (s *categoryHouseholdStoreStub) Create(ctx context.Context, name, createdByUserID string) (model.Household, error) {
 	return model.Household{}, nil
 }
 
